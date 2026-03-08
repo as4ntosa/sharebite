@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { use, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import {
@@ -17,12 +17,13 @@ import {
 } from '@/lib/utils';
 import { PickupMap } from '@/components/map/PickupMap';
 
-export default function ListingDetailPage({ params }: { params: { id: string } }) {
+export default function ListingDetailPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = use(params);
   const router = useRouter();
   const { getListing, reserveListing } = useData();
   const { user } = useAuth();
 
-  const listing = getListing(params.id);
+  const listing = getListing(id);
   const [qty, setQty] = useState(1);
   const [reserving, setReserving] = useState(false);
   const [reserved, setReserved] = useState<{ code: string; total: number } | null>(null);
