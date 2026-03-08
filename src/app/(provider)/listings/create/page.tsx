@@ -9,8 +9,8 @@ import { Input, Textarea } from '@/components/ui/Input';
 import { Modal } from '@/components/ui/Modal';
 import { useAuth } from '@/context/AuthContext';
 import { useData } from '@/context/DataContext';
-import { Category, CuisineTag, SurpriseBoxSize } from '@/types';
-import { CATEGORIES, CUISINE_TAGS, CATEGORY_EMOJI, cn, SURPRISE_BOX_SIZES, SURPRISE_BOX_LABELS, SURPRISE_BOX_PRICES, SURPRISE_BOX_DESCRIPTIONS } from '@/lib/utils';
+import { Category, CuisineTag, SurpriseBoxSize, Allergen } from '@/types';
+import { CATEGORIES, CUISINE_TAGS, CATEGORY_EMOJI, cn, SURPRISE_BOX_SIZES, SURPRISE_BOX_LABELS, SURPRISE_BOX_PRICES, SURPRISE_BOX_DESCRIPTIONS, ALLERGENS, ALLERGEN_LABEL } from '@/lib/utils';
 
 // Sample images providers can choose from
 const SAMPLE_IMAGES = [
@@ -35,6 +35,10 @@ export default function CreateListingPage() {
 
   const [isSurpriseBox, setIsSurpriseBox] = useState(false);
   const [surpriseBoxSize, setSurpriseBoxSize] = useState<SurpriseBoxSize>('small');
+  const [selectedAllergens, setSelectedAllergens] = useState<Allergen[]>([]);
+
+  const toggleAllergen = (a: Allergen) =>
+    setSelectedAllergens((prev) => prev.includes(a) ? prev.filter((x) => x !== a) : [...prev, a]);
 
   const [form, setForm] = useState({
     title: '',
@@ -113,6 +117,7 @@ export default function CreateListingPage() {
       description: finalDescription,
       category: form.category as Category,
       tags: form.tags,
+      allergens: selectedAllergens,
       price: finalPrice,
       originalPrice: form.originalPrice ? Number(form.originalPrice) : undefined,
       quantity: Number(form.quantity),
@@ -312,6 +317,34 @@ export default function CreateListingPage() {
           </div>
         </div>
 
+        {/* Allergen tagging */}
+        <div>
+          <p className="text-sm font-medium text-gray-700 mb-1">Allergens</p>
+          <p className="text-xs text-gray-400 mb-2">Select all that apply. Consumers rely on this to filter safely.</p>
+          <div className="flex flex-wrap gap-2">
+            {ALLERGENS.map((a) => (
+              <button
+                key={a}
+                type="button"
+                onClick={() => toggleAllergen(a as Allergen)}
+                className={cn(
+                  'px-3 py-1.5 rounded-full border text-xs font-medium transition-colors',
+                  selectedAllergens.includes(a as Allergen)
+                    ? 'border-red-500 bg-red-50 text-red-600'
+                    : 'border-gray-200 bg-white text-gray-500'
+                )}
+              >
+                {ALLERGEN_LABEL[a]}
+              </button>
+            ))}
+          </div>
+          {selectedAllergens.length === 0 && (
+            <p className="text-xs text-amber-600 mt-2 flex items-center gap-1">
+              ⚠ If this listing contains no allergens, leave all unselected.
+            </p>
+          )}
+        </div>
+
         {/* Pricing */}
         {!isSurpriseBox && (
           <div className="grid grid-cols-2 gap-3">
@@ -460,14 +493,14 @@ export default function CreateListingPage() {
           </div>
 
           <div className="bg-gray-50 rounded-xl p-4 max-h-48 overflow-y-auto text-xs text-gray-600 leading-relaxed space-y-3">
-            <p className="font-semibold text-gray-800">ShareBite Provider Food Safety Agreement</p>
+            <p className="font-semibold text-gray-800">NibbleNet Provider Food Safety Agreement</p>
 
             <p>
-              By signing this waiver, I agree to the following terms and conditions as a food provider on the ShareBite platform:
+              By signing this waiver, I agree to the following terms and conditions as a food provider on the NibbleNet platform:
             </p>
 
             <p>
-              <strong>1. Food Safety Standards.</strong> I confirm that all food and grocery items I list on ShareBite are safe for human consumption and have been stored, handled, and prepared in accordance with applicable local health and safety regulations.
+              <strong>1. Food Safety Standards.</strong> I confirm that all food and grocery items I list on NibbleNet are safe for human consumption and have been stored, handled, and prepared in accordance with applicable local health and safety regulations.
             </p>
 
             <p>
@@ -483,7 +516,7 @@ export default function CreateListingPage() {
             </p>
 
             <p>
-              <strong>5. Liability.</strong> I understand that I am solely responsible for the safety and quality of the food items I provide. ShareBite serves as a marketplace platform and does not guarantee the safety of listed items.
+              <strong>5. Liability.</strong> I understand that I am solely responsible for the safety and quality of the food items I provide. NibbleNet serves as a marketplace platform and does not guarantee the safety of listed items.
             </p>
 
             <p>
@@ -491,7 +524,7 @@ export default function CreateListingPage() {
             </p>
 
             <p>
-              <strong>7. Recall & Removal.</strong> I agree to promptly remove any listing that may pose a health risk and to notify ShareBite of any food safety concerns.
+              <strong>7. Recall & Removal.</strong> I agree to promptly remove any listing that may pose a health risk and to notify NibbleNet of any food safety concerns.
             </p>
           </div>
 
@@ -503,7 +536,7 @@ export default function CreateListingPage() {
               className="mt-0.5 w-4 h-4 rounded border-gray-300 text-brand-600 focus:ring-brand-500"
             />
             <span className="text-xs text-gray-600">
-              I have read and agree to the ShareBite Food Safety Waiver. I understand my responsibilities as a food provider on this platform.
+              I have read and agree to the NibbleNet Food Safety Waiver. I understand my responsibilities as a food provider on this platform.
             </span>
           </label>
 
