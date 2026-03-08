@@ -35,11 +35,43 @@ Every NibbleNet transaction simultaneously reduces food waste, makes food more a
 
 ---
 
+## Live Database
+
+NibbleNet is connected to a **real Supabase backend** (Postgres + Auth). Real user accounts and live food listings are stored in the cloud.
+
+| Service | Detail |
+|---|---|
+| Provider | Supabase (supabase.com) |
+| Project | `nibblenet` — West US (North California) |
+| Database | PostgreSQL 15 via Supabase |
+| Auth | Supabase Auth (email/password) |
+| Tables | `profiles`, `listings`, `reservations` |
+
+### Data Mode
+
+The app operates in two modes depending on environment configuration:
+
+| Mode | Condition | Behavior |
+|---|---|---|
+| **Live mode** | `NEXT_PUBLIC_SUPABASE_URL` is set | Real sign-up/login, listings saved to DB, feed shows live data |
+| **Mock mode** | Env vars absent | All data from `src/lib/mock-data.ts`, no DB required |
+
+In live mode, the consumer feed shows **real listings first**, then appends sample/mock listings as a "Sample Listings · Demo" section so the feed never appears empty.
+
+### Database Schema
+
+See [`supabase-schema.sql`](./supabase-schema.sql) for the full schema including:
+- Row Level Security (RLS) policies
+- Auto-create profile trigger on sign-up
+- Indexes for feed performance
+
+---
+
 ## Prototype Status
 
-This is a **lightweight hackathon MVP**. All data is mocked and persisted via `localStorage`. No backend or server is required to run the prototype.
+This is a **lightweight hackathon MVP** with a real cloud database backend.
 
-**Production path:** Supabase (auth + database) → Cloudinary (images) → Mapbox (maps) → Stripe + Stripe Identity (payments + verification) → React Native / Expo (iOS)
+**Production path:** Cloudinary (image uploads) → Google Maps / Mapbox (routing) → Stripe + Stripe Identity (payments + verification) → React Native / Expo (iOS)
 
 ---
 
@@ -147,8 +179,29 @@ On the provider-pending page, a **"Simulate Approval"** button is available for 
 git clone https://github.com/as4ntosa/nibblenet.git
 cd nibblenet
 npm install
+```
+
+### Option A — Mock mode (no database required)
+
+```bash
 npm run dev
 ```
+
+The app runs fully on mock/sample data. No environment configuration needed.
+
+### Option B — Live mode (real accounts + database)
+
+Copy the example env file and add your Supabase credentials:
+
+```bash
+cp .env.example .env.local
+# Edit .env.local and fill in NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY
+npm run dev
+```
+
+Get your credentials from **supabase.com → Project Settings → API**.
+
+If setting up a new Supabase project, run [`supabase-schema.sql`](./supabase-schema.sql) in the Supabase SQL editor to create all tables, RLS policies, and triggers.
 
 Open [http://localhost:3000](http://localhost:3000)
 
