@@ -43,6 +43,8 @@ export type ListingStatus = 'available' | 'reserved' | 'sold_out' | 'expired';
 
 export type ReservationStatus = 'confirmed' | 'picked_up' | 'cancelled' | 'cancelled_at_pickup';
 
+export type SurpriseBoxSize = 'small' | 'medium' | 'large';
+
 export interface User {
   id: string;
   email: string;
@@ -61,6 +63,8 @@ export interface User {
   safetyPolicyAccepted?: boolean;
   integrityPolicyAccepted?: boolean;
   foodSafetyAccepted?: boolean;
+  waiverSigned?: boolean;
+  waiverSignedAt?: string;
 }
 
 export interface Listing {
@@ -90,6 +94,8 @@ export interface Listing {
   imageUrl: string;
   isRescueBundle?: boolean;
   isCommunityPantry?: boolean;
+  isSurpriseBox?: boolean;
+  surpriseBoxSize?: SurpriseBoxSize;
   createdAt: string;
   expiresAt: string;
   distance?: number;

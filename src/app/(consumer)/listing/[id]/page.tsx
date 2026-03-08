@@ -40,7 +40,7 @@ export default function ListingDetailPage({ params }: { params: { id: string } }
   const {
     title, businessName, businessType, description, category, tags, allergens, price, originalPrice,
     quantity, quantityReserved, status, pickupAddress, pickupCity, pickupZip,
-    pickupStartTime, pickupEndTime, pickupInstructions, imageUrl, expiresAt, distance, isRescueBundle,
+    pickupStartTime, pickupEndTime, pickupInstructions, imageUrl, expiresAt, distance, isRescueBundle, isSurpriseBox, surpriseBoxSize,
   } = listing;
 
   const remaining = quantity - quantityReserved;
@@ -184,12 +184,14 @@ export default function ListingDetailPage({ params }: { params: { id: string } }
           </span>
         </div>
 
-        {/* Rescue bundle notice */}
-        {isRescueBundle && (
+        {/* Rescue / surprise box notice */}
+        {(isRescueBundle || isSurpriseBox) && (
           <div className="bg-brand-50 border border-brand-100 rounded-2xl p-4 mb-4">
-            <p className="text-xs font-bold text-brand-700 mb-1">🎁 Rescue Bundle</p>
+            <p className="text-xs font-bold text-brand-700 mb-1">
+              🎁 {isSurpriseBox ? `Mystery ${surpriseBoxSize === 'small' ? 'Small' : surpriseBoxSize === 'medium' ? 'Medium' : 'Large'} Box` : 'Rescue Bundle'}
+            </p>
             <p className="text-xs text-brand-600 leading-relaxed">
-              This is a mystery surplus box — exact contents vary. All allergens are disclosed above. You have the right to inspect the contents at pickup before accepting.
+              This is a mystery surplus box — exact contents vary. All allergens are disclosed below. You have the right to inspect the contents at pickup before accepting.
             </p>
           </div>
         )}

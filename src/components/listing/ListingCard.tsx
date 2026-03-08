@@ -14,7 +14,7 @@ export function ListingCard({ listing }: ListingCardProps) {
   const {
     id, title, businessName, category, price, originalPrice,
     quantity, quantityReserved, status, pickupStartTime, pickupEndTime,
-    pickupCity, imageUrl, expiresAt, distance, allergens, isRescueBundle,
+    pickupCity, imageUrl, expiresAt, distance, allergens, isRescueBundle, isSurpriseBox, surpriseBoxSize,
   } = listing;
 
   const remaining = quantity - quantityReserved;
@@ -33,16 +33,21 @@ export function ListingCard({ listing }: ListingCardProps) {
             className="object-cover group-hover:scale-105 transition-transform duration-300"
             sizes="(max-width: 640px) 50vw, 33vw"
           />
-          {/* Discount badge */}
-          {discount && (
-            <div className="absolute top-2 left-2 bg-red-500 text-white text-xs font-bold px-1.5 py-0.5 rounded-lg">
-              -{discount}%
+          {/* Special type badges */}
+          {isSurpriseBox && (
+            <div className="absolute top-2 left-2 bg-purple-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-lg">
+              🎁 {surpriseBoxSize === 'small' ? 'Small' : surpriseBoxSize === 'medium' ? 'Medium' : 'Large'} Mystery Box
             </div>
           )}
-          {/* Rescue bundle badge */}
-          {isRescueBundle && (
-            <div className="absolute top-2 left-2 bg-brand-600 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-lg flex items-center gap-0.5">
+          {isRescueBundle && !isSurpriseBox && (
+            <div className="absolute top-2 left-2 bg-brand-600 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-lg">
               🎁 Rescue Bundle
+            </div>
+          )}
+          {/* Discount badge */}
+          {discount && !isRescueBundle && !isSurpriseBox && (
+            <div className="absolute top-2 left-2 bg-red-500 text-white text-xs font-bold px-1.5 py-0.5 rounded-lg">
+              -{discount}%
             </div>
           )}
           {/* Status overlay */}
