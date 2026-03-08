@@ -2,9 +2,9 @@
 
 import Image from 'next/image';
 import Link from 'next/link';
-import { MapPin, Clock } from 'lucide-react';
+import { MapPin, Clock, Gift } from 'lucide-react';
 import { Listing } from '@/types';
-import { formatPrice, discountPercent, formatPickupWindow, CATEGORY_EMOJI, STATUS_COLOR, STATUS_LABEL, timeUntil } from '@/lib/utils';
+import { formatPrice, discountPercent, formatPickupWindow, CATEGORY_EMOJI, STATUS_COLOR, STATUS_LABEL, timeUntil, SURPRISE_BOX_LABELS } from '@/lib/utils';
 import { Badge } from '@/components/ui/Badge';
 
 interface ListingCardProps {
@@ -16,6 +16,7 @@ export function ListingCard({ listing }: ListingCardProps) {
     id, title, businessName, category, price, originalPrice,
     quantity, quantityReserved, status, pickupStartTime, pickupEndTime,
     pickupCity, imageUrl, expiresAt, distance, tags,
+    isSurpriseBox, surpriseBoxSize,
   } = listing;
 
   const remaining = quantity - quantityReserved;
@@ -34,8 +35,15 @@ export function ListingCard({ listing }: ListingCardProps) {
             className="object-cover group-hover:scale-105 transition-transform duration-300"
             sizes="(max-width: 640px) 50vw, 33vw"
           />
+          {/* Surprise box badge */}
+          {isSurpriseBox && surpriseBoxSize && (
+            <div className="absolute top-2 left-2 bg-purple-500 text-white text-xs font-bold px-2 py-0.5 rounded-lg flex items-center gap-1">
+              <Gift size={11} />
+              {SURPRISE_BOX_LABELS[surpriseBoxSize]}
+            </div>
+          )}
           {/* Discount badge */}
-          {discount && (
+          {!isSurpriseBox && discount && (
             <div className="absolute top-2 left-2 bg-red-500 text-white text-xs font-bold px-1.5 py-0.5 rounded-lg">
               -{discount}%
             </div>

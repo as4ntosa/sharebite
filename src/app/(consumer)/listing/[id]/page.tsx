@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import {
-  ArrowLeft, MapPin, Clock, Store, ShoppingBag, Minus, Plus, CheckCircle, Share2
+  ArrowLeft, MapPin, Clock, Store, ShoppingBag, Minus, Plus, CheckCircle, Share2, Gift
 } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
@@ -13,7 +13,7 @@ import { useData } from '@/context/DataContext';
 import { useAuth } from '@/context/AuthContext';
 import {
   formatPrice, discountPercent, formatPickupWindow, CATEGORY_EMOJI,
-  STATUS_LABEL, timeUntil, cn,
+  STATUS_LABEL, timeUntil, cn, SURPRISE_BOX_LABELS, SURPRISE_BOX_DESCRIPTIONS,
 } from '@/lib/utils';
 
 export default function ListingDetailPage({ params }: { params: { id: string } }) {
@@ -40,6 +40,7 @@ export default function ListingDetailPage({ params }: { params: { id: string } }
     title, businessName, businessType, description, category, tags, price, originalPrice,
     quantity, quantityReserved, status, pickupAddress, pickupCity, pickupZip,
     pickupStartTime, pickupEndTime, pickupInstructions, imageUrl, expiresAt, distance,
+    isSurpriseBox, surpriseBoxSize,
   } = listing;
 
   const remaining = quantity - quantityReserved;
@@ -76,12 +77,17 @@ export default function ListingDetailPage({ params }: { params: { id: string } }
           <Share2 size={16} className="text-gray-700" />
         </button>
 
-        {/* Discount */}
-        {discount && (
+        {/* Surprise box / Discount */}
+        {isSurpriseBox && surpriseBoxSize ? (
+          <div className="absolute bottom-4 left-4 bg-purple-500 text-white text-sm font-bold px-3 py-1.5 rounded-xl flex items-center gap-1.5">
+            <Gift size={14} />
+            {SURPRISE_BOX_LABELS[surpriseBoxSize]}
+          </div>
+        ) : discount ? (
           <div className="absolute bottom-4 left-4 bg-red-500 text-white text-sm font-bold px-2.5 py-1 rounded-xl">
             -{discount}% off
           </div>
-        )}
+        ) : null}
 
         {/* Timer */}
         {isAvailable && (
@@ -96,6 +102,9 @@ export default function ListingDetailPage({ params }: { params: { id: string } }
       <div className="px-4 pt-5 pb-32">
         {/* Category + status */}
         <div className="flex flex-wrap gap-2 mb-3">
+          {isSurpriseBox && (
+            <Badge variant="purple">Surprise Box</Badge>
+          )}
           <Badge>{CATEGORY_EMOJI[category]} {category}</Badge>
           {tags.map((tag) => (
             <Badge key={tag} variant="blue">{tag}</Badge>
@@ -132,8 +141,28 @@ export default function ListingDetailPage({ params }: { params: { id: string } }
 
         {/* Description */}
         <div className="mb-5">
-          <h2 className="text-sm font-semibold text-gray-700 mb-2">About this listing</h2>
-          <p className="text-sm text-gray-500 leading-relaxed">{description}</p>
+          {isSurpriseBox && surpriseBoxSize ? (
+            <>
+              <h2 className="text-sm font-semibold text-gray-700 mb-2">Surprise Box</h2>
+              <div className="bg-purple-50 rounded-2xl p-4 border border-purple-100">
+                <div className="flex items-center gap-2 mb-2">
+                  <Gift size={18} className="text-purple-500" />
+                  <span className="text-sm font-semibold text-purple-700">{SURPRISE_BOX_LABELS[surpriseBoxSize]}</span>
+                </div>
+                <p className="text-sm text-purple-600 mb-2">
+                  {SURPRISE_BOX_DESCRIPTIONS[surpriseBoxSize]}
+                </p>
+                <p className="text-xs text-purple-400">
+                  Contents are a surprise! You won&apos;t know exactly what&apos;s inside until pickup.
+                </p>
+              </div>
+            </>
+          ) : (
+            <>
+              <h2 className="text-sm font-semibold text-gray-700 mb-2">About this listing</h2>
+              <p className="text-sm text-gray-500 leading-relaxed">{description}</p>
+            </>
+          )}
         </div>
 
         {/* Pickup info */}

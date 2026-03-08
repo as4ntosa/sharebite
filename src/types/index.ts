@@ -22,6 +22,8 @@ export type CuisineTag =
 
 export type ListingStatus = 'available' | 'reserved' | 'sold_out' | 'expired';
 
+export type SurpriseBoxSize = 'small' | 'medium' | 'large';
+
 export type ReservationStatus = 'confirmed' | 'picked_up' | 'cancelled';
 
 export interface User {
@@ -36,6 +38,8 @@ export interface User {
   businessType?: string;
   phone?: string;
   bio?: string;
+  waiverSigned?: boolean;
+  waiverSignedAt?: string;
 }
 
 export interface Listing {
@@ -65,6 +69,8 @@ export interface Listing {
   createdAt: string;
   expiresAt: string;
   distance?: number;
+  isSurpriseBox?: boolean;
+  surpriseBoxSize?: SurpriseBoxSize;
 }
 
 export interface Reservation {

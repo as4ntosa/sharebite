@@ -1,6 +1,6 @@
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
-import { Category, ListingStatus } from '@/types';
+import { Category, ListingStatus, SurpriseBoxSize } from '@/types';
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -98,4 +98,24 @@ export const STATUS_COLOR: Record<ListingStatus, string> = {
   reserved: 'bg-amber-100 text-amber-700',
   sold_out: 'bg-gray-100 text-gray-500',
   expired: 'bg-red-100 text-red-500',
+};
+
+export const SURPRISE_BOX_SIZES: SurpriseBoxSize[] = ['small', 'medium', 'large'];
+
+export const SURPRISE_BOX_LABELS: Record<SurpriseBoxSize, string> = {
+  small: 'Small Box',
+  medium: 'Medium Box',
+  large: 'Large Box',
+};
+
+export const SURPRISE_BOX_PRICES: Record<SurpriseBoxSize, number> = {
+  small: 5,
+  medium: 10,
+  large: 18,
+};
+
+export const SURPRISE_BOX_DESCRIPTIONS: Record<SurpriseBoxSize, string> = {
+  small: '1–2 items, perfect for a snack or single meal',
+  medium: '3–5 items, great for a full meal or small family',
+  large: '6+ items, feeds a family or stocks the fridge',
 };

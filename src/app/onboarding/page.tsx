@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { ShoppingBag, Store, MapPin, ArrowRight, CheckCircle } from 'lucide-react';
+import { ShoppingBag, Store, MapPin, ArrowRight, CheckCircle, Shield } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { useAuth } from '@/context/AuthContext';
@@ -15,13 +15,14 @@ export default function OnboardingPage() {
   const router = useRouter();
   const { user, updateProfile, setRole } = useAuth();
 
-  const [step, setStep] = useState<'role' | 'location' | 'provider-details'>('role');
+  const [step, setStep] = useState<'role' | 'location' | 'provider-details' | 'waiver'>('role');
   const [selectedRole, setSelectedRole] = useState<UserRole | null>(null);
   const [city, setCity] = useState(user?.city || '');
   const [zipCode, setZipCode] = useState(user?.zipCode || '');
   const [businessName, setBusinessName] = useState(user?.businessName || '');
   const [businessType, setBusinessType] = useState(user?.businessType || '');
   const [saving, setSaving] = useState(false);
+  const [waiverChecked, setWaiverChecked] = useState(false);
 
   const handleRoleSelect = (role: UserRole) => {
     setSelectedRole(role);
@@ -34,10 +35,15 @@ export default function OnboardingPage() {
     else finish();
   };
 
+  const handleProviderDetailsNext = () => {
+    updateProfile({ businessName, businessType });
+    setStep('waiver');
+  };
+
   const finish = async () => {
     setSaving(true);
     if (selectedRole === 'provider') {
-      updateProfile({ businessName, businessType });
+      updateProfile({ waiverSigned: true, waiverSignedAt: new Date().toISOString() });
     }
     await new Promise((r) => setTimeout(r, 400));
     router.replace(selectedRole === 'provider' ? '/dashboard' : '/home');
@@ -48,20 +54,23 @@ export default function OnboardingPage() {
       <div className="flex-1 px-5 pt-12 pb-8 max-w-sm mx-auto w-full">
         {/* Progress */}
         <div className="flex items-center gap-1.5 mb-8">
-          {['role', 'location', ...(selectedRole === 'provider' ? ['provider-details'] : [])].map(
-            (s, i) => (
-              <div
-                key={s}
-                className={cn(
-                  'h-1.5 rounded-full flex-1 transition-all',
-                  step === s
-                    ? 'bg-brand-600'
-                    : ['role', 'location', 'provider-details'].indexOf(step) > i
-                    ? 'bg-brand-300'
-                    : 'bg-gray-200'
-                )}
-              />
-            )
+          {['role', 'location', ...(selectedRole === 'provider' ? ['provider-details', 'waiver'] : [])].map(
+            (s, i) => {
+              const allSteps = ['role', 'location', 'provider-details', 'waiver'];
+              return (
+                <div
+                  key={s}
+                  className={cn(
+                    'h-1.5 rounded-full flex-1 transition-all',
+                    step === s
+                      ? 'bg-brand-600'
+                      : allSteps.indexOf(step) > i
+                      ? 'bg-brand-300'
+                      : 'bg-gray-200'
+                  )}
+                />
+              );
+            }
           )}
         </div>
 
@@ -214,11 +223,76 @@ export default function OnboardingPage() {
               fullWidth
               size="lg"
               className="mt-8"
-              onClick={finish}
+              onClick={handleProviderDetailsNext}
               disabled={!businessName}
+            >
+              Continue
+              <ArrowRight size={16} className="ml-1" />
+            </Button>
+          </div>
+        )}
+
+        {/* Step: Waiver */}
+        {step === 'waiver' && (
+          <div>
+            <div className="w-12 h-12 rounded-2xl bg-amber-100 flex items-center justify-center mb-4">
+              <Shield size={22} className="text-amber-600" />
+            </div>
+            <h1 className="text-2xl font-bold text-gray-900 mb-1">Food Safety Waiver</h1>
+            <p className="text-gray-400 text-sm mb-6">Please review and sign before you can post listings.</p>
+
+            <div className="bg-gray-50 rounded-xl p-4 max-h-44 overflow-y-auto text-xs text-gray-600 leading-relaxed space-y-3 mb-5">
+              <p className="font-semibold text-gray-800">ShareBite Provider Food Safety Agreement</p>
+
+              <p>
+                By signing this waiver, I agree to the following terms as a food provider on the ShareBite platform:
+              </p>
+
+              <p>
+                <strong>1. Food Safety Standards.</strong> I confirm that all food and grocery items I list are safe for human consumption and have been stored, handled, and prepared in accordance with applicable local health and safety regulations.
+              </p>
+
+              <p>
+                <strong>2. Accurate Listings.</strong> I agree to provide accurate descriptions of all items, including ingredients, allergens, freshness status, and expiration information where applicable.
+              </p>
+
+              <p>
+                <strong>3. Freshness & Expiration.</strong> I will not list any food items that have passed their expiration date or pose a health risk.
+              </p>
+
+              <p>
+                <strong>4. Consumer Inspection Right.</strong> I acknowledge that consumers may inspect items in person at pickup and may confirm or cancel their reservation based on the condition of the food.
+              </p>
+
+              <p>
+                <strong>5. Liability.</strong> I understand that I am solely responsible for the safety and quality of the food items I provide.
+              </p>
+
+              <p>
+                <strong>6. Compliance.</strong> I agree to comply with all local, state, and federal food safety laws and regulations.
+              </p>
+            </div>
+
+            <label className="flex items-start gap-3 cursor-pointer mb-6">
+              <input
+                type="checkbox"
+                checked={waiverChecked}
+                onChange={(e) => setWaiverChecked(e.target.checked)}
+                className="mt-0.5 w-4 h-4 rounded border-gray-300 text-brand-600 focus:ring-brand-500"
+              />
+              <span className="text-xs text-gray-600">
+                I have read and agree to the ShareBite Food Safety Waiver. I understand my responsibilities as a food provider.
+              </span>
+            </label>
+
+            <Button
+              fullWidth
+              size="lg"
+              onClick={finish}
+              disabled={!waiverChecked}
               loading={saving}
             >
-              Start Sharing Food
+              Sign & Start Sharing Food
               <ArrowRight size={16} className="ml-1" />
             </Button>
           </div>
