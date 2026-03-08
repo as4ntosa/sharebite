@@ -2,22 +2,6 @@
 
 A food surplus marketplace that connects providers (restaurants, bakeries, grocers) with consumers looking to purchase surplus food at discounted prices. Built as a mobile-first Next.js app with a desktop iPhone preview frame.
 
-## Screenshots
-
-### Consumer
-| Landing | Login | Home Feed | Search |
-|---------|-------|-----------|--------|
-| ![Landing](public/screenshots/01-landing.png) | ![Login](public/screenshots/02-login.png) | ![Home](public/screenshots/03-consumer-home.png) | ![Search](public/screenshots/04-search.png) |
-
-| Listing Detail | Reservations | Profile |
-|----------------|--------------|---------|
-| ![Listing](public/screenshots/05-listing-detail.png) | ![Reservations](public/screenshots/06-reservations.png) | ![Profile](public/screenshots/07-consumer-profile.png) |
-
-### Provider
-| Dashboard | Listings | Create Listing |
-|-----------|----------|----------------|
-| ![Dashboard](public/screenshots/08-provider-dashboard.png) | ![Listings](public/screenshots/09-provider-listings.png) | ![Create](public/screenshots/10-create-listing.png) |
-
 ## Overview
 
 ShareBite helps reduce food waste by letting food businesses list surplus items at 30–70% discounts. Consumers browse nearby listings, filter by category or cuisine, and reserve items for pickup.
@@ -120,3 +104,19 @@ Playwright is configured for E2E tests:
 ```bash
 npx playwright test
 ```
+
+## Screenshots
+
+### Consumer
+| Landing | Login | Home Feed | Search |
+|---------|-------|-----------|--------|
+| ![Landing](public/screenshots/01-landing.png) | ![Login](public/screenshots/02-login.png) | ![Home](public/screenshots/03-consumer-home.png) | ![Search](public/screenshots/04-search.png) |
+
+| Listing Detail | Reservations | Profile |
+|----------------|--------------|---------|
+| ![Listing](public/screenshots/05-listing-detail.png) | ![Reservations](public/screenshots/06-reservations.png) | ![Profile](public/screenshots/07-consumer-profile.png) |
+
+### Provider
+| Dashboard | Listings | Create Listing |
+|-----------|----------|----------------|
+| ![Dashboard](public/screenshots/08-provider-dashboard.png) | ![Listings](public/screenshots/09-provider-listings.png) | ![Create](public/screenshots/10-create-listing.png) |
