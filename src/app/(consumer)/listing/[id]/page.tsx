@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, use } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import {
@@ -19,12 +19,13 @@ import {
 import { PickupMap } from '@/components/map/PickupMap';
 import { useGeolocation } from '@/hooks/useGeolocation';
 
-export default function ListingDetailPage({ params }: { params: { id: string } }) {
+export default function ListingDetailPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = use(params);
   const router = useRouter();
   const { getListing, reserveListing } = useData();
   const { user } = useAuth();
 
-  const listing = getListing(params.id);
+  const listing = getListing(id);
   const { coords, status: geoStatus, request: requestLocation } = useGeolocation();
   const liveDistance =
     coords && listing?.pickupLat != null && listing?.pickupLng != null
