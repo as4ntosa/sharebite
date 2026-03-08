@@ -1,13 +1,14 @@
 export type UserRole = 'consumer' | 'provider';
 
+/** Which interface the user is currently viewing. Only approved providers can be in 'provider' mode. */
+export type AppMode = 'consumer' | 'provider';
+
 export type ProviderStatus = 'none' | 'pending' | 'approved' | 'rejected';
 
 export type ProviderType =
   | 'Restaurant'
   | 'Grocery Store'
-  | 'Bakery / Cafe'
-  | 'Household'
-  | 'Other Food Business';
+  | 'Household';
 
 export type Allergen =
   | 'peanuts'
@@ -49,7 +50,15 @@ export interface User {
   id: string;
   email: string;
   name: string;
+  /** Always 'consumer' — role is kept for legacy compat but the account model is neutral by default. */
   role: UserRole;
+  /**
+   * Which interface the user is currently viewing.
+   * Defaults to 'consumer'. Can only be set to 'provider' when providerStatus === 'approved'.
+   */
+  currentMode?: AppMode;
+  /** True when providerStatus === 'approved'. Convenience flag. */
+  canProvide?: boolean;
   city?: string;
   zipCode?: string;
   avatarUrl?: string;

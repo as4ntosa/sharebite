@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { LogOut, ChevronRight, MapPin, Mail, Phone, Edit3, Store, HelpCircle, Bell, AlertCircle, Clock } from 'lucide-react';
+import { LogOut, ChevronRight, MapPin, Mail, Phone, Edit3, Store, HelpCircle, Bell, AlertCircle, Clock, ArrowLeftRight, ShoppingBag } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Button } from '@/components/ui/Button';
@@ -13,7 +13,7 @@ import { ALLERGENS, ALLERGEN_LABEL, cn } from '@/lib/utils';
 
 export default function ProfilePage() {
   const router = useRouter();
-  const { user, logout, updateProfile } = useAuth();
+  const { user, logout, updateProfile, switchMode } = useAuth();
   const [editOpen, setEditOpen] = useState(false);
   const [allergyOpen, setAllergyOpen] = useState(false);
   const [name, setName] = useState(user?.name || '');
@@ -172,6 +172,64 @@ export default function ProfilePage() {
               <ChevronRight size={16} className="text-blue-400" />
             </div>
           </Link>
+        )}
+
+        {/* Mode switcher card — only for approved providers */}
+        {providerStatus === 'approved' && (
+          <div className="bg-white rounded-2xl shadow-card overflow-hidden">
+            <div className="px-4 pt-3.5 pb-2">
+              <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide">Account Mode</p>
+              <p className="text-xs text-gray-400 mt-0.5 leading-relaxed">
+                Your account gives you both consumer and provider access. Switch modes to change which tools are shown.
+              </p>
+            </div>
+
+            {/* Consumer mode option */}
+            <button
+              onClick={() => { switchMode('consumer'); router.replace('/home'); }}
+              className={cn(
+                'w-full flex items-center gap-3 px-4 py-3 border-t border-gray-50 transition-colors',
+                user?.currentMode !== 'provider' ? 'bg-brand-50' : 'hover:bg-gray-50'
+              )}
+            >
+              <div className={cn(
+                'w-8 h-8 rounded-xl flex items-center justify-center shrink-0',
+                user?.currentMode !== 'provider' ? 'bg-brand-100' : 'bg-gray-100'
+              )}>
+                <ShoppingBag size={14} className={user?.currentMode !== 'provider' ? 'text-brand-600' : 'text-gray-400'} />
+              </div>
+              <div className="flex-1 text-left">
+                <p className={cn('text-sm font-medium', user?.currentMode !== 'provider' ? 'text-brand-700' : 'text-gray-700')}>Consumer Mode</p>
+                <p className="text-xs text-gray-400">Browse, search, and reserve food</p>
+              </div>
+              {user?.currentMode !== 'provider' && (
+                <span className="text-[10px] font-bold text-brand-600 bg-brand-100 px-2 py-0.5 rounded-full">Active</span>
+              )}
+            </button>
+
+            {/* Provider mode option */}
+            <button
+              onClick={() => { switchMode('provider'); router.replace('/dashboard'); }}
+              className={cn(
+                'w-full flex items-center gap-3 px-4 py-3 border-t border-gray-50 transition-colors',
+                user?.currentMode === 'provider' ? 'bg-amber-50' : 'hover:bg-gray-50'
+              )}
+            >
+              <div className={cn(
+                'w-8 h-8 rounded-xl flex items-center justify-center shrink-0',
+                user?.currentMode === 'provider' ? 'bg-amber-100' : 'bg-gray-100'
+              )}>
+                <Store size={14} className={user?.currentMode === 'provider' ? 'text-amber-600' : 'text-gray-400'} />
+              </div>
+              <div className="flex-1 text-left">
+                <p className={cn('text-sm font-medium', user?.currentMode === 'provider' ? 'text-amber-700' : 'text-gray-700')}>Provider Mode</p>
+                <p className="text-xs text-gray-400">Manage listings and provider dashboard</p>
+              </div>
+              {user?.currentMode === 'provider' && (
+                <span className="text-[10px] font-bold text-amber-600 bg-amber-100 px-2 py-0.5 rounded-full">Active</span>
+              )}
+            </button>
+          </div>
         )}
 
         <button

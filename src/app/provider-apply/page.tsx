@@ -14,9 +14,7 @@ type Step = 'type' | 'verification' | 'integrity' | 'food-safety';
 const PROVIDER_TYPES: { value: ProviderType; emoji: string; desc: string }[] = [
   { value: 'Restaurant', emoji: '🍽️', desc: 'Full-service or fast-casual restaurant' },
   { value: 'Grocery Store', emoji: '🛒', desc: 'Supermarket, co-op, or corner store' },
-  { value: 'Bakery / Cafe', emoji: '☕', desc: 'Bakery, café, patisserie, or coffee shop' },
   { value: 'Household', emoji: '🏠', desc: 'Home cook or household with surplus food' },
-  { value: 'Other Food Business', emoji: '🏪', desc: 'Caterer, food truck, market stall, etc.' },
 ];
 
 const PROHIBITED_ITEMS = [

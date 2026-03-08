@@ -1,7 +1,7 @@
 'use client';
 
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { User, UserRole, ProviderStatus, ProviderType, Allergen } from '@/types';
+import { User, UserRole, AppMode, ProviderStatus, ProviderType, Allergen } from '@/types';
 import { DEMO_USERS } from '@/lib/mock-data';
 import { generateId } from '@/lib/utils';
 
@@ -13,6 +13,11 @@ interface AuthContextValue {
   logout: () => void;
   updateProfile: (data: Partial<User>) => void;
   setRole: (role: UserRole) => void;
+  /**
+   * Switch between consumer and provider mode.
+   * Only works when providerStatus === 'approved'. Silently no-ops otherwise.
+   */
+  switchMode: (mode: AppMode) => void;
   applyForProvider: (data: {
     providerType: ProviderType;
     businessName?: string;
@@ -103,6 +108,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const setRole = (role: UserRole) => updateProfile({ role });
 
+  /**
+   * Switch the active UI mode. Guard: only approved providers can enter provider mode.
+   * Account remains a single neutral account — this only changes the interface.
+   */
+  const switchMode = (mode: AppMode) => {
+    if (!user) return;
+    if (mode === 'provider' && user.providerStatus !== 'approved') return;
+    updateProfile({ currentMode: mode });
+  };
+
   const applyForProvider = (data: {
     providerType: ProviderType;
     businessName?: string;
@@ -110,16 +125,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     integrityPolicyAccepted: boolean;
     foodSafetyAccepted: boolean;
   }) => {
-    updateProfile({ ...data, providerStatus: 'pending' });
+    updateProfile({ ...data, providerStatus: 'pending', currentMode: 'consumer' });
   };
 
+  /**
+   * Demo-only: instantly approve the current user's provider application.
+   * Does NOT change the account role — the account stays a neutral standard account.
+   * Provider mode must be explicitly switched to by the user after approval.
+   */
   const approveProvider = () => {
-    updateProfile({ providerStatus: 'approved', role: 'provider' });
+    updateProfile({ providerStatus: 'approved', canProvide: true, currentMode: 'consumer' });
   };
 
   return (
     <AuthContext.Provider
-      value={{ user, loading, login, signup, logout, updateProfile, setRole, applyForProvider, approveProvider }}
+      value={{ user, loading, login, signup, logout, updateProfile, setRole, switchMode, applyForProvider, approveProvider }}
     >
       {children}
     </AuthContext.Provider>

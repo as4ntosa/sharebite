@@ -11,16 +11,25 @@ export default function ProviderLayout({ children }: { children: React.ReactNode
 
   useEffect(() => {
     if (loading) return;
-    if (!user) router.replace('/login');
-    else if (!user.city) router.replace('/onboarding');
-    else if (user.providerStatus !== 'approved') router.replace('/become-a-provider');
+    if (!user) { router.replace('/login'); return; }
+    if (!user.city) { router.replace('/onboarding'); return; }
+    // Hard gate: provider tools require approved status — mode alone is not enough
+    if (user.providerStatus !== 'approved') {
+      router.replace('/become-a-provider');
+      return;
+    }
+    // Soft gate: if the user has switched back to consumer mode, send them home
+    if (user.currentMode === 'consumer') {
+      router.replace('/home');
+    }
   }, [user, loading, router]);
 
   if (loading || !user) return null;
 
   return (
     <div className="min-h-full bg-gray-50">
-      <main className="pb-20">{children}</main>
+      {/* Extra bottom padding: mode switcher strip (24px) + nav bar (60px) */}
+      <main className="pb-[84px]">{children}</main>
       <ProviderNav />
     </div>
   );
