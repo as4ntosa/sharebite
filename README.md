@@ -111,14 +111,13 @@ npm run build
 npm run lint
 ```
 
-### Demo Accounts
+### Demo Account
 
-| Role | Email | Password |
-|------|-------|----------|
-| Consumer | consumer@demo.com | demo123 |
-| Approved Provider | provider@demo.com | demo123 |
-| Approved Provider | bakery@demo.com | demo123 |
-| Approved Provider | market@demo.com | demo123 |
+| Email | Password |
+|-------|----------|
+| demo@nibblen.com | demo123 |
+
+The demo account starts as a regular consumer. To try the provider flow, use the in-app "Become a Provider" option and click **Simulate Approval** on the pending screen.
 
 ---
 

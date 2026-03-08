@@ -166,7 +166,7 @@ export function IPhoneFrame({ children }: iPhoneFrameProps) {
           zIndex: 10,
           userSelect: 'none',
         }}>
-          ShareBite · iOS Preview
+          NibbleNet · iOS Preview
         </div>
 
         {/* Scaled phone wrapper */}

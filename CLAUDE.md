@@ -47,5 +47,5 @@ All users start as standard consumers. Provider access requires completing a sep
 - Mobile-first layout; `iPhoneFrame` component wraps content for desktop preview
 - Remote images only from `images.unsplash.com` (configured in `next.config.js`)
 - Mock data lives in `src/lib/mock-data.ts`; shared types in `src/types/index.ts`
-- localStorage key: `nibblen_user` (was `sharebite_user`)
-- Confirmation codes prefixed `NN-` (was `SB-`)
+- localStorage key: `nibblen_user`
+- Confirmation codes prefixed `NN-`

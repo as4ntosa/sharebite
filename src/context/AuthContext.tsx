@@ -28,10 +28,7 @@ const AuthContext = createContext<AuthContextValue | null>(null);
 const STORAGE_KEY = 'nibblen_user';
 
 const DEMO_PASSWORDS: Record<string, string> = {
-  'consumer@demo.com': 'demo123',
-  'provider@demo.com': 'demo123',
-  'bakery@demo.com': 'demo123',
-  'market@demo.com': 'demo123',
+  'demo@nibblen.com': 'demo123',
 };
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {

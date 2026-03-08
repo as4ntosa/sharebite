@@ -71,9 +71,8 @@ export default function LoginPage() {
       <div className="flex-1 px-5 max-w-sm mx-auto w-full">
         {tab === 'login' && (
           <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 mb-4 text-xs text-amber-700">
-            <p className="font-semibold mb-1">Demo accounts:</p>
-            <p>Consumer: <strong>consumer@demo.com</strong> / demo123</p>
-            <p>Provider: <strong>provider@demo.com</strong> / demo123</p>
+            <p className="font-semibold mb-1">Demo account:</p>
+            <p><strong>demo@nibblen.com</strong> / demo123</p>
           </div>
         )}
 
