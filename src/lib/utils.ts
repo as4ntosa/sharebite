@@ -1,6 +1,6 @@
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
-import { Category, ListingStatus, SurpriseBoxSize } from '@/types';
+import { Category, FoodCondition, ListingStatus, SurpriseBoxSize } from '@/types';
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -140,4 +140,48 @@ export const SURPRISE_BOX_DESCRIPTIONS: Record<SurpriseBoxSize, string> = {
   small: '1–2 items, perfect for a snack or single meal',
   medium: '3–5 items, great for a full meal or small family',
   large: '6+ items, feeds a family or stocks the fridge',
+};
+
+export function formatFoodAge(preparedAt: string): string {
+  const ms = Date.now() - new Date(preparedAt).getTime();
+  if (ms < 0) return 'Just prepared';
+  const h = Math.floor(ms / 3600000);
+  const m = Math.floor((ms % 3600000) / 60000);
+  if (h >= 48) return `${Math.floor(h / 24)} days ago`;
+  if (h >= 24) return 'Yesterday';
+  if (h > 0) return `${h}h ${m}m ago`;
+  return `${m}m ago`;
+}
+
+export function formatDistance(km: number): string {
+  if (km < 0.1) return 'Nearby';
+  if (km < 1) return `${(km * 1000).toFixed(0)} m`;
+  return `${km.toFixed(1)} km`;
+}
+
+export const FOOD_CONDITION_LABEL: Record<FoodCondition, string> = {
+  cooked: 'Cooked',
+  uncooked: 'Uncooked',
+  packaged: 'Packaged',
+  perishable: 'Perishable',
+  raw: 'Raw / Uncooked',
+  frozen: 'Frozen',
+};
+
+export const FOOD_CONDITION_COLOR: Record<FoodCondition, string> = {
+  cooked: 'bg-orange-50 text-orange-700 border-orange-200',
+  uncooked: 'bg-yellow-50 text-yellow-700 border-yellow-200',
+  packaged: 'bg-blue-50 text-blue-700 border-blue-200',
+  perishable: 'bg-red-50 text-red-700 border-red-200',
+  raw: 'bg-amber-50 text-amber-700 border-amber-200',
+  frozen: 'bg-sky-50 text-sky-700 border-sky-200',
+};
+
+export const FOOD_CONDITION_ICON: Record<FoodCondition, string> = {
+  cooked: '🍳',
+  uncooked: '🥩',
+  packaged: '📦',
+  perishable: '⏱️',
+  raw: '🥬',
+  frozen: '🧊',
 };

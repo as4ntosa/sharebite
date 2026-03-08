@@ -46,6 +46,8 @@ export type ReservationStatus = 'confirmed' | 'picked_up' | 'cancelled' | 'cance
 
 export type SurpriseBoxSize = 'small' | 'medium' | 'large';
 
+export type FoodCondition = 'cooked' | 'uncooked' | 'packaged' | 'perishable' | 'raw' | 'frozen';
+
 export interface User {
   id: string;
   email: string;
@@ -105,6 +107,10 @@ export interface Listing {
   isCommunityPantry?: boolean;
   isSurpriseBox?: boolean;
   surpriseBoxSize?: SurpriseBoxSize;
+  foodCondition?: FoodCondition;
+  freshnessNote?: string;
+  preparedAt?: string;    // ISO datetime when food was prepared/listed
+  handlingNotes?: string;
   createdAt: string;
   expiresAt: string;
   distance?: number;

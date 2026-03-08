@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import {
-  ArrowLeft, MapPin, Clock, Store, ShoppingBag, Minus, Plus, CheckCircle, Share2, ShieldCheck, AlertTriangle, Flag
+  ArrowLeft, MapPin, Clock, Store, ShoppingBag, Minus, Plus, CheckCircle, Share2, ShieldCheck, AlertTriangle, Flag, Navigation, Info
 } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
@@ -14,8 +14,10 @@ import { useAuth } from '@/context/AuthContext';
 import {
   formatPrice, discountPercent, formatPickupWindow, CATEGORY_EMOJI,
   STATUS_LABEL, timeUntil, cn, ALLERGEN_LABEL,
+  haversineKm, formatDistance, formatFoodAge, FOOD_CONDITION_LABEL, FOOD_CONDITION_COLOR, FOOD_CONDITION_ICON,
 } from '@/lib/utils';
 import { PickupMap } from '@/components/map/PickupMap';
+import { useGeolocation } from '@/hooks/useGeolocation';
 
 export default function ListingDetailPage({ params }: { params: { id: string } }) {
   const router = useRouter();
@@ -23,6 +25,11 @@ export default function ListingDetailPage({ params }: { params: { id: string } }
   const { user } = useAuth();
 
   const listing = getListing(params.id);
+  const { coords, status: geoStatus, request: requestLocation } = useGeolocation();
+  const liveDistance =
+    coords && listing?.pickupLat != null && listing?.pickupLng != null
+      ? haversineKm(coords.latitude, coords.longitude, listing.pickupLat, listing.pickupLng)
+      : listing?.distance ?? null;
   const [qty, setQty] = useState(1);
   const [reserving, setReserving] = useState(false);
   const [reserved, setReserved] = useState<{ code: string; total: number } | null>(null);
@@ -41,7 +48,9 @@ export default function ListingDetailPage({ params }: { params: { id: string } }
   const {
     title, businessName, businessType, description, category, tags, allergens, price, originalPrice,
     quantity, quantityReserved, status, pickupAddress, pickupCity, pickupZip,
-    pickupStartTime, pickupEndTime, pickupInstructions, imageUrl, expiresAt, distance, isRescueBundle, isSurpriseBox, surpriseBoxSize,
+    pickupStartTime, pickupEndTime, pickupInstructions, imageUrl, expiresAt, distance,
+    isRescueBundle, isSurpriseBox, surpriseBoxSize,
+    foodCondition, freshnessNote, preparedAt, handlingNotes,
   } = listing;
 
   const remaining = quantity - quantityReserved;
@@ -146,13 +155,35 @@ export default function ListingDetailPage({ params }: { params: { id: string } }
             <div className="w-8 h-8 rounded-xl bg-white flex items-center justify-center shadow-sm shrink-0">
               <MapPin size={14} className="text-brand-500" />
             </div>
-            <div>
+            <div className="flex-1">
               <p className="text-sm font-medium text-gray-800">{pickupAddress}</p>
               <p className="text-xs text-gray-400">{pickupCity}, {pickupZip}</p>
-              {distance !== undefined && (
-                <p className="text-xs text-brand-600 mt-0.5">
-                  {distance < 1 ? `${(distance * 1000).toFixed(0)}m away` : `${distance.toFixed(1)}km away`}
-                </p>
+              {/* Live distance — updates when geolocation changes */}
+              {liveDistance !== null ? (
+                <div className="flex items-center gap-1.5 mt-1">
+                  <Navigation size={11} className="text-brand-600 fill-brand-600 shrink-0" />
+                  <span className="text-xs font-semibold text-brand-600">
+                    {formatDistance(liveDistance)} from your location
+                  </span>
+                  {geoStatus === 'idle' && (
+                    <button
+                      onClick={requestLocation}
+                      className="text-[10px] text-gray-400 underline hover:text-gray-600"
+                    >
+                      Update
+                    </button>
+                  )}
+                </div>
+              ) : (
+                geoStatus === 'idle' && (
+                  <button
+                    onClick={requestLocation}
+                    className="flex items-center gap-1 text-xs text-brand-600 mt-1 hover:underline"
+                  >
+                    <Navigation size={11} />
+                    Show distance from me
+                  </button>
+                )
               )}
             </div>
           </div>
@@ -176,15 +207,72 @@ export default function ListingDetailPage({ params }: { params: { id: string } }
             </div>
           )}
 
-          {/* Pickup location map */}
+          {/* Pickup location map — shows user pin + provider pin when location is granted */}
           {listing.pickupLat != null && listing.pickupLng != null && (
             <PickupMap
               lat={listing.pickupLat}
               lng={listing.pickupLng}
               address={`${pickupAddress}, ${pickupCity}`}
+              userLat={coords?.latitude}
+              userLng={coords?.longitude}
+              interactive
+              height={220}
             />
           )}
         </div>
+
+        {/* Food Details section */}
+        {(foodCondition || freshnessNote || preparedAt || handlingNotes) && (
+          <div className="bg-gray-50 rounded-2xl p-4 mb-5 space-y-3">
+            <h2 className="text-sm font-semibold text-gray-700 flex items-center gap-1.5">
+              <Info size={14} className="text-gray-400" />
+              Food Details
+            </h2>
+
+            {/* Condition badge */}
+            {foodCondition && (
+              <div className="flex items-center gap-2">
+                <span className={`inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-full border ${FOOD_CONDITION_COLOR[foodCondition]}`}>
+                  <span>{FOOD_CONDITION_ICON[foodCondition]}</span>
+                  {FOOD_CONDITION_LABEL[foodCondition]}
+                </span>
+              </div>
+            )}
+
+            {/* Prepared time / food age */}
+            {preparedAt && (
+              <div className="flex items-start gap-2.5">
+                <Clock size={13} className="text-gray-400 shrink-0 mt-0.5" />
+                <div>
+                  <p className="text-xs font-semibold text-gray-600">Prepared</p>
+                  <p className="text-sm text-gray-700">{formatFoodAge(preparedAt)}</p>
+                </div>
+              </div>
+            )}
+
+            {/* Freshness note */}
+            {freshnessNote && (
+              <div className="flex items-start gap-2.5">
+                <span className="text-sm shrink-0 mt-0.5">🌿</span>
+                <div>
+                  <p className="text-xs font-semibold text-gray-600">Freshness</p>
+                  <p className="text-sm text-gray-700 leading-relaxed">{freshnessNote}</p>
+                </div>
+              </div>
+            )}
+
+            {/* Handling notes */}
+            {handlingNotes && (
+              <div className="flex items-start gap-2.5 pt-2 border-t border-gray-200">
+                <span className="text-sm shrink-0 mt-0.5">📋</span>
+                <div>
+                  <p className="text-xs font-semibold text-gray-600">Storage & Handling</p>
+                  <p className="text-sm text-gray-700 leading-relaxed">{handlingNotes}</p>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Availability */}
         <div className="flex items-center justify-between bg-brand-50 rounded-xl px-4 py-3 mb-4">
