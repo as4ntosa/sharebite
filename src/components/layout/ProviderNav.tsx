@@ -2,13 +2,14 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { LayoutDashboard, List, PlusCircle, User } from 'lucide-react';
+import { LayoutDashboard, List, PlusCircle, BarChart3, User } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const NAV_ITEMS = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { href: '/listings', label: 'Listings', icon: List },
   { href: '/listings/create', label: 'Add', icon: PlusCircle },
+  { href: '/reports', label: 'Reports', icon: BarChart3 },
   { href: '/provider-profile', label: 'Profile', icon: User },
 ];
 
