@@ -2,160 +2,162 @@
 
 > **A network for sharing extra food.**
 
-NibbleNet is a web-first social impact marketplace that reduces food waste and makes food more affordable by connecting approved local providers with nearby consumers who want surplus, discounted, or soon-to-expire food.
-
-Restaurants, bakeries, grocery stores, cafes, markets, food trucks, and even **households** can list surplus items — after completing a safety-first provider verification process.
+NibbleNet is a mobile-first, web-based social impact marketplace that reduces food waste while making food and groceries more affordable and accessible. It connects approved local food providers with nearby consumers looking for discounted surplus meals, baked goods, produce, groceries, and more.
 
 ---
 
 ## Why NibbleNet
 
-- **1/3 of all food produced globally is wasted** (FAO)
-- **44 million Americans** face food insecurity (USDA)
-- Existing platforms focus on businesses. NibbleNet is the first to include households with the same safety compliance framework.
-- Every rescued meal saves an estimated **2.5 kg CO₂ equivalent**
+| Stat | Source |
+|---|---|
+| 80 million tons of food wasted per year in the US | USDA |
+| $408 billion worth of food waste annually | ReFED |
+| 40 million Americans food insecure | Feeding America |
+| 8% of global greenhouse gas emissions from food waste | UNEP |
+| Average restaurant wastes ~$10,000 of food per year | Waste360 |
+
+Every NibbleNet transaction simultaneously reduces food waste, makes food more affordable, and decreases the carbon footprint of food decomposition.
 
 ---
 
 ## What Makes NibbleNet Different
 
-| Feature | NibbleNet | Typical Competitors |
-|---------|-----------|---------------------|
-| Household providers with safety compliance | ✅ | ❌ |
-| Allergy-aware discovery (feed filtering) | ✅ | ❌ |
-| Pickup inspection rights (built into provider agreement) | ✅ | ❌ |
-| Unified account — provider access as capability unlock | ✅ | ❌ |
-| Rescue Bundles with allergen disclosure | ✅ | Partial |
-| Impact counter (meals rescued, CO₂ offset) | ✅ | Rare |
-| Dignity-first copy — never "charity food" | ✅ | Varies |
+| Feature | NibbleNet | Typical Surplus Apps |
+|---|---|---|
+| Unified account (consumer + provider) | ✓ | Usually separate |
+| Household provider support | ✓ | Rarely |
+| 4-step provider safety approval | ✓ | Usually none |
+| Allergen-aware auto-filtering | ✓ Built into account | Filter afterthought |
+| Pickup confirm-or-cancel right | ✓ Consumer right | Usually none |
+| Community Pantry / free listings | ✓ | Rarely |
+| Local impact metrics | ✓ | Rarely |
+| AI chatbot assistant | ✓ | Rarely |
+
+---
+
+## Prototype Status
+
+This is a **lightweight hackathon MVP**. All data is mocked and persisted via `localStorage`. No backend or server is required to run the prototype.
+
+**Production path:** Supabase (auth + database) → Cloudinary (images) → Mapbox (maps) → Stripe + Stripe Identity (payments + verification) → React Native / Expo (iOS)
 
 ---
 
 ## Account Model
 
-Every NibbleNet user creates **one account**. There is no separate provider or consumer account type at sign-up.
+NibbleNet uses a **single unified account system**. There are no separate "consumer" or "provider" account types.
 
-| Status | Access |
-|--------|--------|
-| `none` | Browse listings, search, reserve items, manage allergy profile |
-| `pending` | Provider application submitted — awaiting review |
-| `approved` | Full provider access — create and manage listings |
-| `rejected` | Application denied — may reapply |
+- Every user signs up with one account
+- All accounts can browse, search, and reserve listings by default
+- Any account can begin the **Become a Provider** application
+- Provider capabilities are unlocked after completing a formal 4-step safety and verification process
+- The same account retains all consumer features after becoming a provider
 
-Provider access is a **capability earned on the same account**, not a separate login.
+### Provider Status
 
----
-
-## Provider Verification Flow
-
-Before posting any food, users complete a 4-step application attached to their existing account:
-
-**Step 1 — Provider Type**
-Choose from: Restaurant, Grocery Store, Bakery / Cafe, Household, or Other Food Business.
-
-**Step 2 — Identity & Verification Details**
-- Businesses: business name, address, optional license number
-- Households: contact name and home address (kept private, never shown publicly)
-
-**Step 3 — Safety & Integrity Policy**
-Read and acknowledge prohibited items: illegal substances, tampered food, falsified expiry dates, unsafe or contaminated items, misleading listings. Violations result in immediate removal.
-
-**Step 4 — Food Safety Acknowledgement**
-Agree to food handling standards covering cooked foods, raw foods, packaged groceries, and perishables. Providers must acknowledge that **consumers can inspect and decline items at pickup** — and must accept such cancellations without dispute.
-
-> In the prototype, applications can be instantly approved via a **"Simulate Approval"** button on the pending screen.
+| Status | Description |
+|---|---|
+| `none` | Standard consumer access (default for all new accounts) |
+| `pending` | Application submitted, under review |
+| `approved` | Full provider capabilities unlocked |
+| `rejected` | Application denied; can resubmit |
 
 ---
 
-## Allergy & Sensitivity Filtering
+## Supported Provider Types
 
-Users set an allergy profile in account settings:
-peanuts · tree nuts · dairy · eggs · shellfish · soy · gluten · sesame
-
-**Behavior:**
-- **Home feed:** Listings containing saved allergens are automatically hidden. An active filter banner shows how many are suppressed.
-- **Search:** No allergen suppression — full results appear so users can make informed decisions.
-- **Listing cards:** All allergens are shown as chips on every card and detail page.
+- Restaurant / Food Service
+- Grocery Store / Market
+- Bakery / Café / Juice Bar
+- **Household / Home Cook** — unique to NibbleNet, with the same safety compliance framework as businesses
+- Other Food Business
 
 ---
 
-## Consumer Pickup Inspection
+## Provider Onboarding Flow (4 Steps)
 
-NibbleNet gives consumers a formal right to inspect food at pickup:
+Provider access is a gated capability — not a separate account type.
 
-- Consumers may inspect items before accepting
-- If the item doesn't match the listing or appears unsafe, they may **cancel on-site at no charge**
-- Providers agree to this during onboarding and cannot dispute such cancellations
-- Reservation detail page shows **"Confirm Pickup"** and **"Item doesn't match"** buttons
-
----
-
-## Rescue Bundles
-
-Providers can list **Rescue Bundles** — mystery surplus boxes at steep discounts. Unlike generic mystery bags, NibbleNet requires **full allergen disclosure** on every bundle. Consumers know what they can't eat, even if they don't know exactly what's inside.
+1. **Identity authentication** — legal name, date of birth, ID type (placeholder for Stripe Identity / Persona in production)
+2. **Provider type selection** — restaurant, grocery, household, bakery/café, other
+3. **Integrity and safety agreement** — required acknowledgment of prohibited items (drugs, unsafe food, fraudulent or non-food listings, tampered goods)
+4. **Food safety fine print** — covers cooked, uncooked, packaged, and perishable food standards; allergen disclosure requirements; and the consumer's right to inspect and cancel at pickup
 
 ---
 
-## Key Features
+## Trust and Safety
 
-### For All Users (Consumers)
-- Browse nearby listings sorted by distance
-- Filter by category and cuisine tags
-- Full-text search with price range filters
-- Allergy & sensitivity profile — hides matching listings from home feed
-- Reserve items with quantity picker, receive a confirmation code
-- Inspect items at pickup — cancel on-site if item doesn't match
-- Confirm pickup or report issues from reservation history
-- View real-time impact metrics (meals rescued, CO₂ offset)
+NibbleNet treats food safety as a first-class product feature — not an afterthought.
 
-### For Approved Providers
-- Create and manage listings with photos, pricing, allergen tags, and pickup windows
-- Provider dashboard with stats: active listings, total reservations
-- Rescue Bundle listing type for mystery surplus boxes
-- Real-time listing status: available → sold out as reservations come in
+- **Provider gating:** Listing creation is locked until the 4-step approval is complete
+- **Integrity agreement:** Every provider explicitly acknowledges prohibited items (drugs, unsafe food, deceptive listings, non-food items)
+- **Food safety acknowledgment:** Every provider accepts food handling standards covering all food types
+- **Pickup inspection right:** Consumers have the formal right to inspect food at pickup and cancel on the spot if the item doesn't match the listing or appears unsafe
+- **Allergen tags:** Required on all listings containing common allergens; suppressed automatically from sensitive users' feeds
+- **One-tap reporting:** Any listing can be reported with type selection and description; creates a moderation record
+
+---
+
+## Allergen-Aware Filtering
+
+Users save allergy and sensitivity preferences in their profile:
+
+`Peanuts · Tree Nuts · Dairy · Eggs · Shellfish · Soy · Gluten · Sesame`
+
+- The home feed **automatically suppresses** any listing containing a saved allergen
+- A banner tells users how many listings were hidden, with a link to manage preferences
+- When a user intentionally **searches**, allergen suppression is lifted so discovery is never blocked by the filter system
+
+---
+
+## Demo Credentials
+
+One shared demo account covers both the consumer and provider experience. No separate logins needed.
+
+| Field | Value |
+|---|---|
+| Email | `demo@nibblen.com` |
+| Password | `demo123` |
+
+The demo account has `providerStatus: 'approved'` pre-configured. You can browse the consumer feed, manage reservations, and access the provider dashboard from the same login.
+
+On the provider-pending page, a **"Simulate Approval"** button is available for demo purposes.
 
 ---
 
 ## Tech Stack
 
-- **Next.js 14+** (App Router, Turbopack)
-- **React 18** with Context API + `useReducer`
-- **Tailwind CSS 3.4** with custom green brand palette
-- **Lucide React** icons
-- **TypeScript**
-- No backend — all data is mocked and persisted via `localStorage`
-- Geolocation via browser `navigator.geolocation` API with Haversine distance calculation
-
-**Production path:** Supabase (Auth + Postgres + PostGIS + Storage), Mapbox for map view, Stripe for payments, Expo + React Native for iOS.
+| Layer | Technology |
+|---|---|
+| Framework | Next.js 14 (App Router) |
+| Language | TypeScript |
+| Styling | Tailwind CSS |
+| Icons | Lucide React |
+| State | React Context + useReducer |
+| Persistence | localStorage (MVP) |
+| Geolocation | Browser API + Haversine distance |
+| AI Chatbot | Featherless AI — Llama 3.1-8B-Instruct |
+| Images | Unsplash CDN |
 
 ---
 
-## Getting Started
+## Local Setup
 
 ```bash
+git clone https://github.com/as4ntosa/nibblenet.git
+cd nibblenet
 npm install
-npm run dev       # http://localhost:3000
-npm run build
-npm run lint
-npx playwright test   # E2E screenshots
+npm run dev
 ```
 
----
+Open [http://localhost:3000](http://localhost:3000)
 
-## Demo Account
+Other commands:
 
-| Email | Password |
-|-------|----------|
-| demo@nibblen.com | demo123 |
-
-The demo account starts as a standard consumer with no provider status.
-
-**To experience the full provider flow:**
-1. Go to **Profile**
-2. Tap **Become a Provider**
-3. Complete the 4-step application
-4. On the pending screen, tap **Simulate Approval**
-5. You will be redirected to the provider dashboard with full listing creation access
+```bash
+npm run build    # Production build
+npm run lint     # ESLint
+```
 
 ---
 
@@ -164,68 +166,77 @@ The demo account starts as a standard consumer with no provider status.
 ```
 src/
 ├── app/
-│   ├── (consumer)/         # All-user routes (home, search, listing, reservations, profile)
-│   ├── (provider)/         # Approved-provider-only routes (dashboard, listings, create)
-│   ├── become-a-provider/  # Provider program intro page
-│   ├── provider-apply/     # 4-step application form
-│   ├── provider-pending/   # Pending approval screen
-│   ├── login/
-│   ├── onboarding/
-│   └── page.tsx            # Landing / splash
+│   ├── (consumer)/        # Home feed, search, listing detail, reservations, profile
+│   ├── (provider)/        # Dashboard, listings, create listing
+│   ├── become-a-provider/ # Provider landing page
+│   ├── provider-apply/    # 4-step provider onboarding form
+│   ├── provider-pending/  # Pending approval status page
+│   ├── login/             # Unified sign in / sign up
+│   └── onboarding/        # City + zip setup after sign-up
 ├── components/
-│   ├── layout/             # BottomNav (consumer), ProviderNav, IPhoneFrame
-│   ├── listing/            # ListingCard (with allergen chips + rescue badge), FilterSheet
-│   ├── reservation/        # ReservationCard (with confirm/cancel-at-pickup)
-│   └── ui/                 # Button, Input, Modal, Badge
+│   ├── ui/                # Button, Input, Badge, Modal primitives
+│   ├── layout/            # IPhoneFrame, BottomNav
+│   ├── listing/           # ListingCard, AllergenChips
+│   ├── reservation/       # ReservationCard
+│   └── ChatBot.tsx        # AI assistant (Featherless API)
 ├── context/
-│   ├── AuthContext.tsx     # User session, provider status, allergy profile
-│   └── DataContext.tsx     # Listings, reservations, allergen filtering, pickup actions
-├── hooks/
-│   └── useGeolocation.ts   # Browser Geolocation API wrapper
+│   ├── AuthContext.tsx    # User session, provider status, localStorage
+│   └── DataContext.tsx    # Listings, reservations, filtering, pickup actions
 ├── lib/
-│   ├── mock-data.ts        # 13 listings with allergen tags, rescue bundle, single demo user
-│   └── utils.ts            # Helpers, ALLERGENS constant, haversineKm
+│   ├── mock-data.ts       # Demo users, listings, reservations
+│   └── utils.ts           # Allergens, distances, formatters
 └── types/
-    └── index.ts            # User, Listing, Reservation, ProviderStatus, Allergen types
+    └── index.ts           # Shared TypeScript types
 ```
 
 ---
 
 ## Roadmap
 
-- **Admin review panel** — real provider application review workflow
-- **Stripe payment integration** — in-app payment at reservation
-- **Real identity verification** — Stripe Identity or equivalent
-- **Map view** — Mapbox + PostGIS, visualize nearby providers
-- **Push notifications** — listing updates, reservation confirmations
-- **Provider ratings** — consumer reviews after successful pickups
-- **iOS / mobile app** — Expo + React Native with shared business logic
-- **Community partner program** — food banks, universities, senior centers
-- **Corporate sponsorship dashboard** — sponsor-a-meal program at scale
-- **Sponsor-a-Meal** — users or businesses fund listings for community members
+### Now (MVP — Hackathon)
+- Unified account with provider capability gating
+- 4-step provider safety approval flow
+- Consumer feed with allergen-aware auto-filtering
+- Location-based listing discovery (Haversine distance)
+- Reservation system with confirm-or-cancel pickup
+- Rescue Bundles and Surprise Boxes
+- Impact counter (meals rescued, CO₂ saved)
+- AI chatbot assistant (NibbleNet Assistant)
+
+### Next (Post-MVP)
+- Supabase backend (auth + real-time database)
+- Real identity verification (Stripe Identity or Persona)
+- Stripe Connect payment processing
+- Provider reviews and ratings
+- Map view with listing pins
+- Community Pantry mode (free/donation listings)
+- Sponsor-a-Meal (philanthropic pledge layer)
+- Provider analytics dashboard
+- Pro subscription tier ($19/mo)
+
+### Later (Mobile)
+- React Native / Expo iOS app sharing business logic
+- Push notifications (Expo Push + Web Push)
+- Multi-language support
+- Multi-city impact dashboard
 
 ---
 
-## Branding
+## Impact Metrics
 
-**NibbleNet** = *A network for sharing extra food.*
+NibbleNet tracks and displays local impact on the home screen:
 
-The name reflects a connected community — a "net" of neighbors, businesses, and households sharing small amounts ("nibbles") of surplus food. Green-first brand palette emphasizes sustainability, freshness, and community trust. Copy never uses "charity," "donation," or "cheap" — it's always "surplus," "rescue," and "share."
+- **Meals rescued** — total confirmed pickups in the city this week
+- **CO₂ saved** — meals × 2.5 kg average per meal equivalent
+- **Active providers** — verified providers with live listings
+- **Community pantry meals** — free/donation listings claimed
 
 ---
 
-## Screenshots
+## License
 
-### Consumer
-| Landing | Login | Home Feed | Search |
-|---------|-------|-----------|--------|
-| ![Landing](public/screenshots/01-landing.png) | ![Login](public/screenshots/02-login.png) | ![Home](public/screenshots/03-consumer-home.png) | ![Search](public/screenshots/04-search.png) |
+MIT
 
-| Listing Detail | Reservations | Profile |
-|----------------|--------------|---------|
-| ![Listing](public/screenshots/05-listing-detail.png) | ![Reservations](public/screenshots/06-reservations.png) | ![Profile](public/screenshots/07-consumer-profile.png) |
+---
 
-### Provider
-| Dashboard | Listings | Create Listing |
-|-----------|----------|----------------|
-| ![Dashboard](public/screenshots/08-provider-dashboard.png) | ![Listings](public/screenshots/09-provider-listings.png) | ![Create](public/screenshots/10-create-listing.png) |
+*NibbleNet — A network for sharing extra food.*
