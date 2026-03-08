@@ -25,9 +25,13 @@ function LoginContent() {
 
   useEffect(() => {
     if (!loading && user) {
-      if (!user.city) router.replace('/onboarding');
-      else if (user.providerStatus === 'approved') router.replace('/dashboard');
-      else router.replace('/home');
+      if (!user.city) { router.replace('/onboarding'); return; }
+      // Respect the user's last active mode on login
+      if (user.providerStatus === 'approved' && user.currentMode === 'provider') {
+        router.replace('/dashboard');
+      } else {
+        router.replace('/home');
+      }
     }
   }, [user, loading, router]);
 

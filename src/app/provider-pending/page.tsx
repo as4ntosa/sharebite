@@ -13,14 +13,19 @@ export default function ProviderPendingPage() {
   const [approving, setApproving] = useState(false);
 
   useEffect(() => {
-    if (user?.providerStatus === 'approved') router.replace('/dashboard');
+    // If already approved and in provider mode, go to dashboard.
+    // If approved but still in consumer mode, stay here until they choose to switch.
+    if (user?.providerStatus === 'approved' && user?.currentMode === 'provider') {
+      router.replace('/dashboard');
+    }
   }, [user, router]);
 
   const handleDemoApprove = async () => {
     setApproving(true);
     await new Promise((r) => setTimeout(r, 1200));
-    approveProvider();
-    router.replace('/dashboard');
+    approveProvider(); // sets providerStatus='approved', currentMode stays 'consumer'
+    // Land on home — the mode switcher will appear and the user can choose to switch
+    router.replace('/home');
   };
 
   return (
@@ -58,7 +63,7 @@ export default function ProviderPendingPage() {
             <p className="text-xs font-bold text-amber-700">Prototype / Demo Mode</p>
           </div>
           <p className="text-xs text-amber-600 mb-3 leading-relaxed">
-            In a real deployment, approval happens via our admin team. For this prototype, click below to instantly simulate approval.
+            In a real deployment, approval happens via our admin team. For this prototype, click below to instantly simulate approval. After approval, a mode switcher will appear so you can toggle between Consumer and Provider tools.
           </p>
           <Button fullWidth size="sm" loading={approving} onClick={handleDemoApprove}>
             Simulate Approval

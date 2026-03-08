@@ -11,9 +11,19 @@ export const DEMO_USERS: User[] = [
     email: 'demo@nibblen.com',
     name: 'Demo User',
     role: 'consumer',
+    // Demo starts in consumer mode by default.
+    // Provider mode is available via the mode switcher (providerStatus is approved).
+    currentMode: 'consumer',
+    canProvide: true,
     city: 'San Francisco',
     zipCode: '94105',
     bio: 'Exploring NibbleNet — a network for sharing extra food.',
+    providerStatus: APPROVED,
+    providerType: 'Restaurant',
+    businessName: 'Demo Kitchen',
+    integrityPolicyAccepted: true,
+    foodSafetyAccepted: true,
+    waiverSigned: true,
   },
 ];
 
