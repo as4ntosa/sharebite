@@ -29,7 +29,7 @@ export default function ProviderLayout({ children }: { children: React.ReactNode
   return (
     <div className="min-h-full bg-gray-50">
       {/* Extra bottom padding: mode switcher strip (24px) + nav bar (60px) */}
-      <main className="pb-[84px]">{children}</main>
+      <main className="pb-[96px]">{children}</main>
       <ProviderNav />
     </div>
   );

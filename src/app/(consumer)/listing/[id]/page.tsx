@@ -107,7 +107,7 @@ export default function ListingDetailPage() {
       </div>
 
       {/* Content */}
-      <div className="px-4 pt-5 pb-32">
+      <div className="px-4 pt-5 pb-44">
         {/* Category + status */}
         <div className="flex flex-wrap gap-2 mb-3">
           <Badge>{CATEGORY_EMOJI[category]} {category}</Badge>
@@ -365,9 +365,9 @@ export default function ListingDetailPage() {
         </div>
       </div>
 
-      {/* Sticky reserve bar */}
+      {/* Sticky reserve bar — sits above bottom nav + mode switcher */}
       {isAvailable && (
-        <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-100 px-4 py-3 z-40">
+        <div className="fixed bottom-[96px] left-0 right-0 bg-white border-t border-gray-100 px-4 py-3 z-50">
           <div className="max-w-lg mx-auto flex items-center gap-4">
             {/* Quantity picker */}
             <div className="flex items-center gap-2 bg-gray-100 rounded-xl p-1">
@@ -403,7 +403,7 @@ export default function ListingDetailPage() {
       )}
 
       {!isAvailable && status !== 'available' && (
-        <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-100 px-4 py-3 z-40">
+        <div className="fixed bottom-[96px] left-0 right-0 bg-white border-t border-gray-100 px-4 py-3 z-50">
           <div className="max-w-lg mx-auto">
             <Button fullWidth size="lg" disabled className="bg-gray-100 text-gray-400 cursor-not-allowed">
               {STATUS_LABEL[status]}

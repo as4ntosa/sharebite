@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef, FormEvent } from 'react';
+import { useState, useEffect, useRef, FormEvent, useCallback } from 'react';
 import { MessageCircle, X, Send } from 'lucide-react';
 
 // Featherless AI config
@@ -18,6 +18,11 @@ interface Message {
   content: string;
 }
 
+type Corner = 'bottom-right' | 'bottom-left' | 'top-right' | 'top-left';
+
+const BUBBLE_SIZE = 48;
+const EDGE_GAP = 12;
+
 export function ChatBot() {
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState<Message[]>([]);
@@ -25,8 +30,13 @@ export function ChatBot() {
   const [isTyping, setIsTyping] = useState(false);
   const [showBadge, setShowBadge] = useState(false);
   const [greeted, setGreeted] = useState(false);
+  const [corner, setCorner] = useState<Corner>('top-right');
+  const [dragging, setDragging] = useState(false);
+  const [dragPos, setDragPos] = useState<{ x: number; y: number } | null>(null);
   const messagesRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const dragStartRef = useRef<{ startX: number; startY: number; moved: boolean } | null>(null);
   const historyRef = useRef<{ role: string; content: string }[]>([
     { role: 'system', content: SYSTEM_PROMPT },
   ]);
@@ -59,6 +69,64 @@ export function ChatBot() {
     }
   }, [isOpen]);
 
+  // ─── Drag handling ──────────────────────────────────────────────
+  const getContainerRect = useCallback(() => {
+    return containerRef.current?.getBoundingClientRect() ?? null;
+  }, []);
+
+  const snapToCorner = useCallback((clientX: number, clientY: number) => {
+    const rect = getContainerRect();
+    if (!rect) return;
+    const midX = rect.left + rect.width / 2;
+    const midY = rect.top + rect.height / 2;
+    const isRight = clientX >= midX;
+    const isBottom = clientY >= midY;
+    if (isBottom && isRight) setCorner('bottom-right');
+    else if (isBottom && !isRight) setCorner('bottom-left');
+    else if (!isBottom && isRight) setCorner('top-right');
+    else setCorner('top-left');
+  }, [getContainerRect]);
+
+  const handlePointerDown = useCallback((e: React.PointerEvent) => {
+    if (isOpen) return; // don't drag when chat is open
+    (e.target as HTMLElement).setPointerCapture(e.pointerId);
+    dragStartRef.current = { startX: e.clientX, startY: e.clientY, moved: false };
+    setDragging(true);
+  }, [isOpen]);
+
+  const handlePointerMove = useCallback((e: React.PointerEvent) => {
+    if (!dragStartRef.current) return;
+    const dx = e.clientX - dragStartRef.current.startX;
+    const dy = e.clientY - dragStartRef.current.startY;
+    if (Math.abs(dx) > 4 || Math.abs(dy) > 4) {
+      dragStartRef.current.moved = true;
+    }
+    if (!dragStartRef.current.moved) return;
+
+    const rect = getContainerRect();
+    if (!rect) return;
+    // Clamp position inside container
+    const x = Math.max(0, Math.min(e.clientX - rect.left - BUBBLE_SIZE / 2, rect.width - BUBBLE_SIZE));
+    const y = Math.max(0, Math.min(e.clientY - rect.top - BUBBLE_SIZE / 2, rect.height - BUBBLE_SIZE));
+    setDragPos({ x, y });
+  }, [getContainerRect]);
+
+  const handlePointerUp = useCallback((e: React.PointerEvent) => {
+    if (!dragStartRef.current) return;
+    const wasDrag = dragStartRef.current.moved;
+    dragStartRef.current = null;
+    setDragging(false);
+    setDragPos(null);
+
+    if (wasDrag) {
+      snapToCorner(e.clientX, e.clientY);
+    } else {
+      // It was a tap/click, toggle chat
+      setIsOpen((o) => !o);
+      setShowBadge(false);
+    }
+  }, [snapToCorner]);
+
   const toggleOpen = () => {
     setIsOpen((o) => !o);
     setShowBadge(false);
@@ -89,13 +157,11 @@ export function ChatBot() {
     const text = input.trim();
     if (!text) return;
 
-    // Add user message
     const userMsg: Message = { role: 'user', content: text };
     setMessages((prev) => [...prev, userMsg]);
     historyRef.current.push({ role: 'user', content: text });
     setInput('');
 
-    // Contact shortcut
     if (/contact|reach|email|support/i.test(text)) {
       const reply = 'You can reach us at: support@nibblenet.com';
       setMessages((prev) => [...prev, { role: 'assistant', content: reply }]);
@@ -103,7 +169,6 @@ export function ChatBot() {
       return;
     }
 
-    // Fetch AI response
     setIsTyping(true);
     try {
       const reply = await fetchAIResponse();
@@ -120,24 +185,66 @@ export function ChatBot() {
     }
   };
 
+  // ─── Position styles ────────────────────────────────────────────
+  const bubbleCornerStyle = (): React.CSSProperties => {
+    if (dragPos) {
+      return { left: dragPos.x, top: dragPos.y, transition: 'none' };
+    }
+    const base: React.CSSProperties = { transition: 'all 0.3s cubic-bezier(0.4,0,0.2,1)' };
+    switch (corner) {
+      case 'bottom-right': return { ...base, bottom: EDGE_GAP, right: EDGE_GAP };
+      case 'bottom-left': return { ...base, bottom: EDGE_GAP, left: EDGE_GAP };
+      case 'top-right': return { ...base, top: EDGE_GAP, right: EDGE_GAP };
+      case 'top-left': return { ...base, top: EDGE_GAP, left: EDGE_GAP };
+    }
+  };
+
+  const chatWindowStyle = (): React.CSSProperties => {
+    const isBottom = corner.startsWith('bottom');
+    const isRight = corner.endsWith('right');
+    return {
+      pointerEvents: 'auto',
+      ...(isBottom ? { bottom: BUBBLE_SIZE + EDGE_GAP + 8 } : { top: BUBBLE_SIZE + EDGE_GAP + 8 }),
+      ...(isRight ? { right: EDGE_GAP } : { left: EDGE_GAP }),
+    };
+  };
+
   return (
-    <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none', zIndex: 50 }}>
-      {/* Floating bubble */}
-      <button
-        onClick={toggleOpen}
-        style={{ pointerEvents: 'auto' }}
-        className="absolute bottom-16 right-3 w-12 h-12 rounded-full bg-brand-600 text-white flex items-center justify-center shadow-lg hover:scale-105 transition-transform"
-        aria-label="Toggle chat"
+    <div ref={containerRef} style={{ position: 'absolute', inset: 0, pointerEvents: 'none', zIndex: 50 }}>
+      {/* Floating draggable bubble */}
+      <div
+        onPointerDown={handlePointerDown}
+        onPointerMove={handlePointerMove}
+        onPointerUp={handlePointerUp}
+        style={{
+          pointerEvents: 'auto',
+          position: 'absolute',
+          width: BUBBLE_SIZE,
+          height: BUBBLE_SIZE,
+          cursor: dragging ? 'grabbing' : 'grab',
+          touchAction: 'none',
+          userSelect: 'none',
+          ...bubbleCornerStyle(),
+        }}
       >
-        {isOpen ? <X size={20} /> : <MessageCircle size={20} />}
-        {showBadge && !isOpen && (
-          <span className="absolute -top-0.5 -right-0.5 w-3 h-3 bg-red-500 rounded-full border-2 border-white" />
-        )}
-      </button>
+        <div
+          className={`w-full h-full rounded-full bg-brand-600 text-white flex items-center justify-center shadow-lg ${
+            dragging ? 'scale-110 opacity-80' : 'hover:scale-105'
+          } transition-transform`}
+        >
+          {isOpen ? <X size={20} /> : <MessageCircle size={20} />}
+          {showBadge && !isOpen && (
+            <span className="absolute -top-0.5 -right-0.5 w-3 h-3 bg-red-500 rounded-full border-2 border-white" />
+          )}
+        </div>
+      </div>
 
       {/* Chat window */}
       {isOpen && (
-        <div style={{ pointerEvents: 'auto' }} className="absolute bottom-[112px] right-3 left-3 max-h-[420px] bg-white rounded-2xl shadow-2xl flex flex-col overflow-hidden">
+        <div
+          style={chatWindowStyle()}
+          className="absolute w-[calc(100%-24px)] max-w-[360px] max-h-[420px] bg-white rounded-2xl shadow-2xl flex flex-col overflow-hidden"
+        >
           {/* Header */}
           <div className="bg-brand-600 text-white px-4 py-3 flex items-center justify-between shrink-0">
             <span className="font-semibold text-sm">NibbleNet Assistant</span>
@@ -147,7 +254,7 @@ export function ChatBot() {
           </div>
 
           {/* Messages */}
-          <div ref={messagesRef} className="flex-1 overflow-y-auto p-4 space-y-2.5 min-h-[260px] max-h-[320px]">
+          <div ref={messagesRef} className="flex-1 overflow-y-auto p-4 space-y-2.5 min-h-[200px] max-h-[280px]">
             {messages.map((msg, i) => (
               <div
                 key={i}

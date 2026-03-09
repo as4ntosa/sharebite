@@ -248,19 +248,33 @@ export function IPhoneFrame({ children }: iPhoneFrameProps) {
               }}
             >
               <StatusBar />
+              {/* App area — transform creates a containing block so
+                  position:fixed children (bottom nav, reserve bar, modals)
+                  stay inside the phone screen instead of the viewport */}
               <div
                 style={{
                   flex: 1,
-                  overflowY: 'auto',
-                  overflowX: 'hidden',
-                  WebkitOverflowScrolling: 'touch',
-                  scrollbarWidth: 'none',
+                  overflow: 'hidden',
                   position: 'relative',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  transform: 'translateZ(0)',
                 }}
               >
-                {children}
+                <div
+                  style={{
+                    flex: 1,
+                    overflowY: 'auto',
+                    overflowX: 'hidden',
+                    WebkitOverflowScrolling: 'touch',
+                    scrollbarWidth: 'none',
+                    position: 'relative',
+                  }}
+                >
+                  {children}
+                </div>
+                <ChatBot />
               </div>
-              <ChatBot />
               <HomeIndicator />
             </div>
           </div>
