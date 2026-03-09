@@ -120,6 +120,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (isSupabaseEnabled && supabase) {
       const { error } = await supabase.auth.signInWithPassword({ email, password });
       if (error) throw new Error(error.message);
+      // Eagerly hydrate user state so the redirect fires immediately
+      // without waiting for the async onAuthStateChange callback.
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session?.user) {
+        const profile = await fetchProfile(session.user.id);
+        persistLocal(dbProfileToUser(session.user, profile) as User);
+      }
       return;
     }
 
@@ -140,10 +147,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (isSupabaseEnabled && supabase) {
       const { data, error } = await supabase.auth.signUp({ email, password, options: { data: { name } } });
       if (error) throw new Error(error.message);
-      if (data.user) {
-        await upsertProfile(data.user.id, { name });
-        const profile = await fetchProfile(data.user.id);
-        setUser(dbProfileToUser(data.user, profile) as User);
+      // If email confirmation is required, data.session is null even though
+      // data.user exists. Only set the user when we have an actual session.
+      if (data.session?.user) {
+        await upsertProfile(data.session.user.id, { name });
+        const profile = await fetchProfile(data.session.user.id);
+        persistLocal(dbProfileToUser(data.session.user, profile) as User);
+      } else if (data.user && !data.session) {
+        // Confirmation email sent — let the caller decide how to handle this.
+        throw new Error('Please check your email to confirm your account, then sign in.');
       }
       return;
     }

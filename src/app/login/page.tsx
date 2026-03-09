@@ -22,6 +22,7 @@ function LoginContent() {
   const [name, setName] = useState('');
   const [showPw, setShowPw] = useState(false);
   const [error, setError] = useState('');
+  const [info, setInfo] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
@@ -39,6 +40,7 @@ function LoginContent() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+    setInfo('');
     setSubmitting(true);
     try {
       if (tab === 'login') {
@@ -46,11 +48,16 @@ function LoginContent() {
       } else {
         if (!name.trim()) throw new Error('Please enter your name');
         await signup(email, password, name);
-        router.replace('/onboarding');
-        return;
+        // signup sets user via persistLocal; useEffect above handles redirect
       }
     } catch (err: any) {
-      setError(err.message);
+      const msg: string = err.message ?? 'Something went wrong';
+      if (msg.toLowerCase().includes('check your email') || msg.toLowerCase().includes('confirm')) {
+        setInfo(msg);
+        setTab('login');
+      } else {
+        setError(msg);
+      }
     } finally {
       setSubmitting(false);
     }
@@ -96,6 +103,13 @@ function LoginContent() {
             Sign Up
           </button>
         </div>
+
+        {info && (
+          <div className="flex items-center gap-2 bg-blue-50 border border-blue-200 rounded-xl p-3 mb-4">
+            <AlertCircle size={15} className="text-blue-500 shrink-0" />
+            <p className="text-sm text-blue-700">{info}</p>
+          </div>
+        )}
 
         {error && (
           <div className="flex items-center gap-2 bg-red-50 border border-red-200 rounded-xl p-3 mb-4">
