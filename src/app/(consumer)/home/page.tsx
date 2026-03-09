@@ -5,10 +5,12 @@ import { useSearchParams } from 'next/navigation';
 import { Search, MapPin, Navigation, Loader2, Leaf, AlertCircle, LayoutGrid, Map } from 'lucide-react';
 import Link from 'next/link';
 import { ListingCard } from '@/components/listing/ListingCard';
+import { ListingCardSkeleton } from '@/components/listing/ListingCardSkeleton';
 import { ListingsMap } from '@/components/map/ListingsMap';
 import { useAuth } from '@/context/AuthContext';
 import { useData } from '@/context/DataContext';
 import { Category, Listing } from '@/types';
+import { isSupabaseEnabled } from '@/lib/supabase';
 import { CATEGORIES, CATEGORY_EMOJI, cn, haversineKm } from '@/lib/utils';
 import { useGeolocation } from '@/hooks/useGeolocation';
 
@@ -16,7 +18,7 @@ type ViewMode = 'list' | 'map';
 
 export default function HomePage() {
   const { user } = useAuth();
-  const { getListings } = useData();
+  const { getListings, listingsFetchStatus } = useData();
   const searchParams = useSearchParams();
   const { coords, status, request } = useGeolocation();
 
@@ -42,6 +44,11 @@ export default function HomePage() {
         )
         .sort((a, b) => (a.distance ?? Infinity) - (b.distance ?? Infinity))
     : rawListings;
+
+  // Split into live vs sample listings (only relevant when Supabase is configured)
+  const liveListings = listings.filter((l) => !l.isSample);
+  const sampleListings = listings.filter((l) => l.isSample);
+  const hasLiveSplit = isSupabaseEnabled && listingsFetchStatus === 'live' && liveListings.length > 0;
 
   const greeting = () => {
     const h = new Date().getHours();
@@ -234,6 +241,13 @@ export default function HomePage() {
             className="w-full"
             style={{ height: 'calc(100vh - 320px)', minHeight: 360 }}
           />
+        ) : listingsFetchStatus === 'loading' ? (
+          /* ── Skeleton while Supabase fetches ──────────────────── */
+          <div className="grid grid-cols-2 gap-3">
+            {Array.from({ length: 6 }).map((_, i) => (
+              <ListingCardSkeleton key={i} />
+            ))}
+          </div>
         ) : listings.length === 0 ? (
           /* ── Empty state ──────────────────────────────────────── */
           <div className="text-center py-16">
@@ -241,8 +255,33 @@ export default function HomePage() {
             <h3 className="text-base font-semibold text-gray-700 mb-1">No listings found</h3>
             <p className="text-sm text-gray-400">Try a different category or check back later</p>
           </div>
+        ) : hasLiveSplit ? (
+          /* ── Live + sample split (Supabase mode) ─────────────── */
+          <div className="space-y-4">
+            <div className="grid grid-cols-2 gap-3">
+              {liveListings.map((listing) => (
+                <ListingCard key={listing.id} listing={listing} />
+              ))}
+            </div>
+            {sampleListings.length > 0 && (
+              <>
+                <div className="flex items-center gap-3 my-2">
+                  <div className="flex-1 h-px bg-gray-100" />
+                  <span className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider px-1">
+                    Sample Listings · Demo
+                  </span>
+                  <div className="flex-1 h-px bg-gray-100" />
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  {sampleListings.map((listing) => (
+                    <ListingCard key={listing.id} listing={listing} />
+                  ))}
+                </div>
+              </>
+            )}
+          </div>
         ) : (
-          /* ── List view ─────────────────────────────────────────── */
+          /* ── List view (mock-only / no live data) ─────────────── */
           <div className="grid grid-cols-2 gap-3">
             {listings.map((listing) => (
               <ListingCard key={listing.id} listing={listing} />
