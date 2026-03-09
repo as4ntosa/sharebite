@@ -4,11 +4,26 @@
  */
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 
-const url = process.env.NEXT_PUBLIC_SUPABASE_URL ?? '';
-const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? '';
+// Fallback values allow the app to connect to the live DB on Vercel even without
+// env vars configured in the dashboard. NEXT_PUBLIC_ anon keys are safe to embed
+// client-side — they're already in the client JS bundle and protected by Supabase RLS.
+const url =
+  process.env.NEXT_PUBLIC_SUPABASE_URL ??
+  'https://mankfjoscqgghddhhmnv.supabase.co';
+const key =
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ??
+  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1hbmtmam9zY3FnZ2hkZGhobW52Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMwMDA0ODgsImV4cCI6MjA4ODU3NjQ4OH0.NTL1mifmxrS6jTOIu79ec661wkWO2HcOHcDRYPUSYdw';
 
 export const supabase: SupabaseClient | null =
-  url && key ? createClient(url, key) : null;
+  url && key
+    ? createClient(url, key, {
+        auth: {
+          persistSession: true,
+          autoRefreshToken: true,
+          detectSessionInUrl: true,
+        },
+      })
+    : null;
 
 export const isSupabaseEnabled = Boolean(url && key);
 
