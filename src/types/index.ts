@@ -78,6 +78,8 @@ export interface User {
   waiverSignedAt?: string;
 }
 
+export type ProviderBadge = 'verified' | 'top-rated' | 'fast-mover' | 'eco-champion' | 'health-certified';
+
 export interface Listing {
   id: string;
   providerId: string;
@@ -107,6 +109,11 @@ export interface Listing {
   isCommunityPantry?: boolean;
   isSurpriseBox?: boolean;
   surpriseBoxSize?: SurpriseBoxSize;
+  /** If true, this listing is a free food donation to NGOs or community */
+  isDonation?: boolean;
+  /** If true, this is a special event surplus listing */
+  isEvent?: boolean;
+  eventDate?: string;
   foodCondition?: FoodCondition;
   freshnessNote?: string;
   preparedAt?: string;    // ISO datetime when food was prepared/listed
@@ -114,6 +121,8 @@ export interface Listing {
   createdAt: string;
   expiresAt: string;
   distance?: number;
+  /** Provider badges earned */
+  providerBadges?: ProviderBadge[];
   /** True when this listing comes from mock/sample data (not a real live listing). */
   isSample?: boolean;
 }

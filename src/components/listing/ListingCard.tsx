@@ -30,12 +30,20 @@ function distancePill(km: number) {
   return <span className="flex items-center gap-0.5 text-[10px] font-medium text-gray-500 bg-gray-100 px-1.5 py-0.5 rounded-full"><MapPin size={8} />{label}</span>;
 }
 
+const BADGE_CONFIG: Record<string, { label: string; style: string }> = {
+  verified:         { label: '✓ Verified',       style: 'bg-blue-50 text-blue-600 border-blue-100' },
+  'top-rated':      { label: '⭐ Top Rated',      style: 'bg-amber-50 text-amber-600 border-amber-100' },
+  'fast-mover':     { label: '⚡ Fast Mover',     style: 'bg-purple-50 text-purple-600 border-purple-100' },
+  'eco-champion':   { label: '🌿 Eco Champion',   style: 'bg-brand-50 text-brand-600 border-brand-100' },
+  'health-certified': { label: '🏥 Health Cert',  style: 'bg-teal-50 text-teal-600 border-teal-100' },
+};
+
 export function ListingCard({ listing }: ListingCardProps) {
   const {
     id, title, businessName, businessType, category, tags, price, originalPrice,
     quantity, quantityReserved, status, pickupStartTime, pickupEndTime,
     imageUrl, expiresAt, distance, allergens, isRescueBundle, isSurpriseBox,
-    surpriseBoxSize, foodCondition, preparedAt,
+    surpriseBoxSize, foodCondition, preparedAt, isDonation, isEvent, providerBadges,
   } = listing;
 
   const remaining = quantity - quantityReserved;
@@ -63,17 +71,27 @@ export function ListingCard({ listing }: ListingCardProps) {
           />
 
           {/* Type badges */}
-          {isSurpriseBox && (
+          {isDonation && (
+            <div className="absolute top-2 left-2 bg-teal-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-lg leading-tight">
+              🤝 Free
+            </div>
+          )}
+          {isEvent && !isDonation && (
+            <div className="absolute top-2 left-2 bg-pink-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-lg leading-tight">
+              🎉 Event
+            </div>
+          )}
+          {isSurpriseBox && !isDonation && !isEvent && (
             <div className="absolute top-2 left-2 bg-purple-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-lg leading-tight">
               🎁 {surpriseBoxSize === 'small' ? 'S' : surpriseBoxSize === 'medium' ? 'M' : 'L'} Mystery
             </div>
           )}
-          {isRescueBundle && !isSurpriseBox && (
+          {isRescueBundle && !isSurpriseBox && !isDonation && !isEvent && (
             <div className="absolute top-2 left-2 bg-brand-600 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-lg leading-tight">
               🎁 Rescue
             </div>
           )}
-          {discount && !isRescueBundle && !isSurpriseBox && (
+          {discount && !isRescueBundle && !isSurpriseBox && !isDonation && !isEvent && (
             <div className="absolute top-2 left-2 bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-lg">
               -{discount}%
             </div>
@@ -140,7 +158,7 @@ export function ListingCard({ listing }: ListingCardProps) {
           </h3>
 
           {/* Business name + provider type */}
-          <div className="flex items-center gap-1.5 mb-2 flex-wrap">
+          <div className="flex items-center gap-1.5 mb-1.5 flex-wrap">
             <p className="text-[11px] text-gray-400 truncate max-w-[100px]">{businessName}</p>
             {businessType && (
               <span className={cn('text-[9px] font-bold px-1.5 py-0.5 rounded-full shrink-0', providerColor)}>
@@ -148,6 +166,26 @@ export function ListingCard({ listing }: ListingCardProps) {
               </span>
             )}
           </div>
+
+          {/* Reputation badges */}
+          {providerBadges && providerBadges.length > 0 && (
+            <div className="flex flex-wrap gap-1 mb-2">
+              {providerBadges.slice(0, 2).map((badge) => {
+                const cfg = BADGE_CONFIG[badge];
+                if (!cfg) return null;
+                return (
+                  <span key={badge} className={cn('text-[9px] font-semibold border px-1.5 py-0.5 rounded-full', cfg.style)}>
+                    {cfg.label}
+                  </span>
+                );
+              })}
+              {providerBadges.length > 2 && (
+                <span className="text-[9px] font-semibold bg-gray-100 text-gray-400 border border-gray-200 px-1.5 py-0.5 rounded-full">
+                  +{providerBadges.length - 2}
+                </span>
+              )}
+            </div>
+          )}
 
           {/* Price row */}
           <div className="flex items-center gap-2 mb-2">

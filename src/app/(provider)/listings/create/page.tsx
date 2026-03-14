@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
-import { ArrowLeft, ImagePlus, CheckCircle, Gift, Sparkles, Loader2 } from 'lucide-react';
+import { ArrowLeft, ImagePlus, CheckCircle, Gift, Sparkles, Loader2, Heart, Calendar } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { Input, Textarea } from '@/components/ui/Input';
 import { Modal } from '@/components/ui/Modal';
@@ -37,6 +37,9 @@ export default function CreateListingPage() {
   const [isSurpriseBox, setIsSurpriseBox] = useState(false);
   const [surpriseBoxSize, setSurpriseBoxSize] = useState<SurpriseBoxSize>('small');
   const [selectedAllergens, setSelectedAllergens] = useState<Allergen[]>([]);
+  const [isDonation, setIsDonation] = useState(false);
+  const [isEvent, setIsEvent] = useState(false);
+  const [eventDate, setEventDate] = useState('');
 
   const toggleAllergen = (a: Allergen) =>
     setSelectedAllergens((prev) => prev.includes(a) ? prev.filter((x) => x !== a) : [...prev, a]);
@@ -71,6 +74,7 @@ export default function CreateListingPage() {
   const [loadingPrice, setLoadingPrice] = useState(false);
   const [qualityScore, setQualityScore] = useState<{ score: number; tip: string } | null>(null);
   const [loadingQuality, setLoadingQuality] = useState(false);
+  const [loadingRewrite, setLoadingRewrite] = useState(false);
 
   const suggestPrice = async () => {
     if (!form.originalPrice || !form.category) return;
@@ -109,6 +113,25 @@ export default function CreateListingPage() {
     }
   };
 
+  const rewriteWithAI = async () => {
+    if (!form.title.trim() && !form.description.trim()) return;
+    setLoadingRewrite(true);
+    try {
+      const reply = await askAI(
+        'You are a professional food listing copywriter. Reply with ONLY a JSON object: {"title": "<improved title>", "description": "<improved description 1-2 sentences>"}. No markdown.',
+        `title="${form.title}", description="${form.description}", category=${form.category || 'food'}. Make it more enticing and clear while keeping it honest.`,
+        180,
+      );
+      const parsed = JSON.parse(reply.replace(/```json|```/g, '').trim());
+      setForm((f) => ({ ...f, title: parsed.title || f.title, description: parsed.description || f.description }));
+      setQualityScore(null);
+    } catch {
+      // silently fail
+    } finally {
+      setLoadingRewrite(false);
+    }
+  };
+
   const set = (key: string, value: string) =>
     setForm((f) => ({ ...f, [key]: value }));
 
@@ -124,7 +147,7 @@ export default function CreateListingPage() {
     if (!isSurpriseBox) {
       if (!form.title.trim()) e.title = 'Title is required';
       if (!form.description.trim()) e.description = 'Description is required';
-      if (!form.price || Number(form.price) <= 0) e.price = 'Enter a valid price';
+      if (!isDonation && (!form.price || Number(form.price) <= 0)) e.price = 'Enter a valid price';
     }
     if (!form.category) e.category = 'Please select a category';
     if (!form.quantity || Number(form.quantity) <= 0) e.quantity = 'Quantity must be at least 1';
@@ -145,7 +168,7 @@ export default function CreateListingPage() {
       Date.now() + (new Date(`1970-01-01T${form.pickupEndTime}:00`).getTime() - new Date(`1970-01-01T${form.pickupStartTime}:00`).getTime() + 8 * 3600000)
     ).toISOString();
 
-    const finalPrice = isSurpriseBox ? SURPRISE_BOX_PRICES[surpriseBoxSize] : Number(form.price);
+    const finalPrice = isDonation ? 0 : isSurpriseBox ? SURPRISE_BOX_PRICES[surpriseBoxSize] : Number(form.price);
     const finalTitle = isSurpriseBox ? `Surprise ${SURPRISE_BOX_LABELS[surpriseBoxSize]}` : form.title;
     const finalDescription = isSurpriseBox
       ? `A surprise ${SURPRISE_BOX_LABELS[surpriseBoxSize].toLowerCase()} filled with a mystery assortment from ${user!.businessName || user!.name}. Contents vary — that's the fun!`
@@ -175,6 +198,9 @@ export default function CreateListingPage() {
         expiresAt,
         isSurpriseBox,
         surpriseBoxSize: isSurpriseBox ? surpriseBoxSize : undefined,
+        isDonation: isDonation || undefined,
+        isEvent: isEvent || undefined,
+        eventDate: isEvent && eventDate ? new Date(eventDate).toISOString() : undefined,
       });
       setSuccessOpen(true);
     } catch (err) {
@@ -262,6 +288,61 @@ export default function CreateListingPage() {
           </button>
         </div>
 
+        {/* Donation toggle */}
+        <button
+          type="button"
+          onClick={() => { setIsDonation(!isDonation); if (!isDonation) { setIsSurpriseBox(false); setIsEvent(false); } }}
+          className={cn(
+            'w-full flex items-center gap-3 p-4 rounded-2xl border-2 transition-all text-left',
+            isDonation ? 'border-teal-500 bg-teal-50' : 'border-gray-200 bg-white hover:border-gray-300'
+          )}
+        >
+          <div className={cn('w-10 h-10 rounded-xl flex items-center justify-center shrink-0', isDonation ? 'bg-teal-100' : 'bg-gray-100')}>
+            <Heart size={20} className={isDonation ? 'text-teal-600' : 'text-gray-400'} />
+          </div>
+          <div className="flex-1">
+            <p className={cn('font-semibold text-sm', isDonation ? 'text-teal-700' : 'text-gray-700')}>Donate This Food (Free)</p>
+            <p className="text-xs text-gray-400 mt-0.5">List at $0 — consumers pick up at no charge</p>
+          </div>
+          <div className={cn('w-5 h-5 rounded-md border-2 flex items-center justify-center shrink-0', isDonation ? 'border-teal-500 bg-teal-500' : 'border-gray-300')}>
+            {isDonation && <CheckCircle size={12} className="text-white" />}
+          </div>
+        </button>
+
+        {/* Event toggle */}
+        <div>
+          <button
+            type="button"
+            onClick={() => { setIsEvent(!isEvent); if (!isEvent) { setIsDonation(false); setIsSurpriseBox(false); } }}
+            className={cn(
+              'w-full flex items-center gap-3 p-4 rounded-2xl border-2 transition-all text-left',
+              isEvent ? 'border-pink-500 bg-pink-50' : 'border-gray-200 bg-white hover:border-gray-300'
+            )}
+          >
+            <div className={cn('w-10 h-10 rounded-xl flex items-center justify-center shrink-0', isEvent ? 'bg-pink-100' : 'bg-gray-100')}>
+              <Calendar size={20} className={isEvent ? 'text-pink-600' : 'text-gray-400'} />
+            </div>
+            <div className="flex-1">
+              <p className={cn('font-semibold text-sm', isEvent ? 'text-pink-700' : 'text-gray-700')}>Event Surplus</p>
+              <p className="text-xs text-gray-400 mt-0.5">Food left over from a special event or function</p>
+            </div>
+            <div className={cn('w-5 h-5 rounded-md border-2 flex items-center justify-center shrink-0', isEvent ? 'border-pink-500 bg-pink-500' : 'border-gray-300')}>
+              {isEvent && <CheckCircle size={12} className="text-white" />}
+            </div>
+          </button>
+          {isEvent && (
+            <div className="mt-2">
+              <Input
+                label="Event Date"
+                type="date"
+                value={eventDate}
+                onChange={(e) => setEventDate(e.target.value)}
+                hint="Optional — when did/will the event take place?"
+              />
+            </div>
+          )}
+        </div>
+
         {/* Surprise box size selector */}
         {isSurpriseBox && (
           <div>
@@ -314,28 +395,39 @@ export default function CreateListingPage() {
                 error={errors.description}
               />
               {/* AI Quality Score */}
-              <div className="mt-2 flex items-center gap-2">
-                <button
-                  type="button"
-                  onClick={checkQuality}
-                  disabled={loadingQuality || !form.title || !form.description}
-                  className="flex items-center gap-1.5 text-xs font-semibold text-brand-600 bg-brand-50 border border-brand-200 px-3 py-1.5 rounded-lg hover:bg-brand-100 transition-colors disabled:opacity-40"
-                >
-                  {loadingQuality ? <Loader2 size={12} className="animate-spin" /> : <Sparkles size={12} />}
-                  Check Quality
-                </button>
-                {qualityScore && (
-                  <div className={cn(
-                    'flex-1 flex items-start gap-2 rounded-lg px-3 py-2 text-xs',
-                    qualityScore.score >= 7 ? 'bg-green-50 text-green-700' :
-                    qualityScore.score >= 4 ? 'bg-amber-50 text-amber-700' :
-                    'bg-red-50 text-red-700'
-                  )}>
-                    <span className="font-bold shrink-0">
-                      {qualityScore.score}/10
-                    </span>
-                    <span className="leading-relaxed">{qualityScore.tip}</span>
-                  </div>
+              <div className="mt-2 space-y-2">
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={checkQuality}
+                    disabled={loadingQuality || !form.title || !form.description}
+                    className="flex items-center gap-1.5 text-xs font-semibold text-brand-600 bg-brand-50 border border-brand-200 px-3 py-1.5 rounded-lg hover:bg-brand-100 transition-colors disabled:opacity-40"
+                  >
+                    {loadingQuality ? <Loader2 size={12} className="animate-spin" /> : <Sparkles size={12} />}
+                    Check Quality
+                  </button>
+                  {qualityScore && (
+                    <div className={cn(
+                      'flex-1 flex items-start gap-2 rounded-lg px-3 py-2 text-xs',
+                      qualityScore.score >= 7 ? 'bg-green-50 text-green-700' :
+                      qualityScore.score >= 4 ? 'bg-amber-50 text-amber-700' :
+                      'bg-red-50 text-red-700'
+                    )}>
+                      <span className="font-bold shrink-0">{qualityScore.score}/10</span>
+                      <span className="leading-relaxed">{qualityScore.tip}</span>
+                    </div>
+                  )}
+                </div>
+                {qualityScore && qualityScore.score < 7 && (
+                  <button
+                    type="button"
+                    onClick={rewriteWithAI}
+                    disabled={loadingRewrite}
+                    className="flex items-center gap-1.5 text-xs font-semibold text-purple-600 bg-purple-50 border border-purple-200 px-3 py-1.5 rounded-lg hover:bg-purple-100 transition-colors disabled:opacity-40"
+                  >
+                    {loadingRewrite ? <Loader2 size={12} className="animate-spin" /> : <Sparkles size={12} />}
+                    ✨ Rewrite with AI
+                  </button>
                 )}
               </div>
             </div>
@@ -419,7 +511,7 @@ export default function CreateListingPage() {
         </div>
 
         {/* Pricing */}
-        {!isSurpriseBox && (
+        {!isSurpriseBox && !isDonation && (
           <div className="space-y-2">
             <div className="grid grid-cols-2 gap-3">
               <Input

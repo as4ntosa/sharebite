@@ -2,7 +2,7 @@
 
 import { useMemo } from 'react';
 import Link from 'next/link';
-import { Leaf, TrendingUp, Award, Users, ShoppingBag } from 'lucide-react';
+import { Leaf, TrendingUp, Award, Users, ShoppingBag, Flame, Info, Globe } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { useData } from '@/context/DataContext';
 import { formatPrice } from '@/lib/utils';
@@ -38,6 +38,21 @@ export default function ImpactPage() {
   const userEntry = personal.meals > 0
     ? { name: user?.name?.split(' ')[0] || 'You', kg: personal.kg, meals: personal.meals, badge: '🌱', isMe: true }
     : null;
+
+  // Streak: count consecutive days with at least one pickup (mock: based on reservation dates)
+  const streak = useMemo(() => {
+    if (pickedUp.length === 0) return 0;
+    const days = Array.from(new Set(pickedUp.map((r) => r.createdAt.split('T')[0]))).sort().reverse();
+    let s = 1;
+    for (let i = 1; i < days.length; i++) {
+      const prev = new Date(days[i - 1]);
+      const curr = new Date(days[i]);
+      const diff = (prev.getTime() - curr.getTime()) / 86400000;
+      if (diff <= 1) s++;
+      else break;
+    }
+    return s;
+  }, [pickedUp]);
 
   return (
     <div>
@@ -83,6 +98,17 @@ export default function ImpactPage() {
           </div>
         )}
 
+        {/* Streak */}
+        {streak > 0 && (
+          <div className="bg-amber-50 border border-amber-100 rounded-2xl px-4 py-3 flex items-center gap-3">
+            <Flame size={20} className="text-amber-500 shrink-0" />
+            <div>
+              <p className="text-sm font-bold text-amber-700">{streak}-day rescue streak 🔥</p>
+              <p className="text-xs text-amber-500">Keep it going — every pickup counts!</p>
+            </div>
+          </div>
+        )}
+
         {/* Platform stats */}
         <div>
           <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">NibbleNet Platform</p>
@@ -118,6 +144,47 @@ export default function ImpactPage() {
                 <p className="text-xs text-gray-600">{text}</p>
               </div>
             ))}
+          </div>
+        </div>
+
+        {/* UN SDG alignment */}
+        <div className="bg-white rounded-2xl shadow-card p-4">
+          <div className="flex items-center gap-2 mb-3">
+            <Globe size={14} className="text-blue-600" />
+            <p className="text-xs font-semibold text-gray-700 uppercase tracking-wide">UN Sustainable Development Goals</p>
+          </div>
+          <div className="space-y-2">
+            {[
+              { num: 2, label: 'Zero Hunger', color: 'bg-yellow-500', desc: 'Every rescue diverts food from waste to someone who needs it.' },
+              { num: 12, label: 'Responsible Consumption', color: 'bg-amber-500', desc: 'Food waste reduction is a direct lever on consumption patterns.' },
+              { num: 13, label: 'Climate Action', color: 'bg-green-600', desc: 'Food waste accounts for ~8% of global GHG emissions. Every kg matters.' },
+            ].map(({ num, label, color, desc }) => (
+              <div key={num} className="flex items-start gap-3">
+                <div className={`w-7 h-7 rounded-lg ${color} flex items-center justify-center shrink-0 mt-0.5`}>
+                  <span className="text-[11px] font-black text-white">{num}</span>
+                </div>
+                <div>
+                  <p className="text-xs font-semibold text-gray-700">{label}</p>
+                  <p className="text-[11px] text-gray-400 leading-relaxed">{desc}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* CO₂ Methodology */}
+        <div className="bg-gray-50 rounded-2xl p-4">
+          <div className="flex items-start gap-2">
+            <Info size={13} className="text-gray-400 shrink-0 mt-0.5" />
+            <div>
+              <p className="text-xs font-semibold text-gray-600 mb-1">CO₂ Methodology</p>
+              <p className="text-[11px] text-gray-400 leading-relaxed">
+                We apply <span className="font-semibold">2.0 kg CO₂e per kg of food waste avoided</span>, based on IPCC AR6 (2022) lifecycle food waste emissions data. Food weight is estimated at 0.4 kg per meal rescued. Figures are conservative and do not include transportation savings or packaging offsets.
+              </p>
+              <Link href="/partners" className="text-[11px] text-brand-600 font-semibold mt-1 inline-block hover:underline">
+                Download methodology for grant reporting →
+              </Link>
+            </div>
           </div>
         </div>
 

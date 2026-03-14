@@ -113,22 +113,31 @@ export function ReservationCard({ reservation, onCancel, onConfirmPickup, onCanc
       )}
 
       {/* Footer */}
-      <div className="mt-3 pt-3 border-t border-white/60 flex items-center justify-between">
-        <div>
+      <div className="mt-3 pt-3 border-t border-white/60 flex items-center justify-between gap-3">
+        <div className="flex-1">
           <p className="text-[10px] text-gray-400 uppercase tracking-wide">Confirmation</p>
           <p className="text-sm font-mono font-bold text-gray-800">{confirmationCode}</p>
-        </div>
-        <div className="text-right">
-          <p className="text-[10px] text-gray-400">{date}</p>
+          <p className="text-[10px] text-gray-400 mt-1">{date}</p>
           {status === 'confirmed' && onCancel && (
             <button
               onClick={() => onCancel(id)}
-              className="text-xs text-red-500 hover:text-red-600 font-medium mt-0.5"
+              className="text-xs text-red-500 hover:text-red-600 font-medium mt-1"
             >
               Cancel
             </button>
           )}
         </div>
+        {/* QR code for confirmed reservations */}
+        {status === 'confirmed' && (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={`https://api.qrserver.com/v1/create-qr-code/?size=72x72&data=${encodeURIComponent(confirmationCode)}&margin=4`}
+            alt={`QR code for ${confirmationCode}`}
+            width={72}
+            height={72}
+            className="rounded-lg border border-gray-200 shrink-0"
+          />
+        )}
       </div>
 
       {/* Pickup action buttons — shown for confirmed reservations */}

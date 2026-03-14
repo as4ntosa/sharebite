@@ -1,10 +1,10 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import Image from 'next/image';
 import {
-  ArrowLeft, MapPin, Clock, Store, ShoppingBag, Minus, Plus, CheckCircle, Share2, ShieldCheck, AlertTriangle, Flag, Navigation, Info
+  ArrowLeft, MapPin, Clock, Store, ShoppingBag, Minus, Plus, CheckCircle, Share2, ShieldCheck, AlertTriangle, Flag, Navigation, Info, Users
 } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
@@ -61,8 +61,17 @@ export default function ListingDetailClient() {
     quantity, quantityReserved, status, pickupAddress, pickupCity, pickupZip,
     pickupStartTime, pickupEndTime, pickupInstructions, imageUrl, expiresAt, distance,
     isRescueBundle, isSurpriseBox, surpriseBoxSize,
-    foodCondition, freshnessNote, preparedAt, handlingNotes,
+    foodCondition, freshnessNote, preparedAt, handlingNotes, providerBadges,
   } = listing;
+
+  // Deterministic social proof signals seeded from listing id
+  const { viewingNow, lastReservedMins } = useMemo(() => {
+    const seed = id.split('').reduce((acc, c) => acc + c.charCodeAt(0), 0);
+    return {
+      viewingNow: (seed % 7) + 2,
+      lastReservedMins: (seed % 45) + 5,
+    };
+  }, [id]);
 
   const remaining = quantity - quantityReserved;
   const discount = originalPrice ? discountPercent(price, originalPrice) : null;
@@ -138,7 +147,7 @@ export default function ListingDetailClient() {
         <h1 className="text-xl font-bold text-gray-900 mb-1">{title}</h1>
 
         {/* Business */}
-        <div className="flex items-center gap-2 mb-4 flex-wrap">
+        <div className="flex items-center gap-2 mb-2 flex-wrap">
           <div className="w-6 h-6 rounded-full bg-gray-100 flex items-center justify-center shrink-0">
             <Store size={12} className="text-gray-400" />
           </div>
@@ -157,6 +166,41 @@ export default function ListingDetailClient() {
             </span>
           )}
         </div>
+
+        {/* Provider reputation badges */}
+        {providerBadges && providerBadges.length > 0 && (
+          <div className="flex flex-wrap gap-1.5 mb-3">
+            {providerBadges.map((badge) => {
+              const cfg: Record<string, { label: string; style: string }> = {
+                verified:           { label: '✓ Verified',       style: 'bg-blue-50 text-blue-600 border-blue-100' },
+                'top-rated':        { label: '⭐ Top Rated',      style: 'bg-amber-50 text-amber-600 border-amber-100' },
+                'fast-mover':       { label: '⚡ Fast Mover',     style: 'bg-purple-50 text-purple-600 border-purple-100' },
+                'eco-champion':     { label: '🌿 Eco Champion',   style: 'bg-brand-50 text-brand-600 border-brand-100' },
+                'health-certified': { label: '🏥 Health Cert',    style: 'bg-teal-50 text-teal-600 border-teal-100' },
+              };
+              const c = cfg[badge];
+              return c ? (
+                <span key={badge} className={cn('text-[10px] font-semibold border px-2 py-0.5 rounded-full', c.style)}>
+                  {c.label}
+                </span>
+              ) : null;
+            })}
+          </div>
+        )}
+
+        {/* Social proof signals */}
+        {status === 'available' && (
+          <div className="flex items-center gap-3 mb-4">
+            <div className="flex items-center gap-1 text-[11px] text-gray-500">
+              <Users size={11} className="text-brand-500" />
+              <span><span className="font-semibold text-brand-700">{viewingNow}</span> people viewing now</span>
+            </div>
+            <span className="text-gray-200">·</span>
+            <div className="text-[11px] text-gray-500">
+              Last reserved <span className="font-semibold">{lastReservedMins}m ago</span>
+            </div>
+          </div>
+        )}
 
         {/* Price */}
         <div className="flex items-center gap-3 mb-5">
@@ -457,11 +501,23 @@ export default function ListingDetailClient() {
             Your reservation is confirmed. Show the code at pickup.
           </p>
 
-          <div className="bg-gray-50 rounded-2xl px-6 py-4 mb-5">
-            <p className="text-xs text-gray-400 uppercase tracking-wider mb-1">Confirmation Code</p>
-            <p className="text-2xl font-mono font-bold text-gray-900 tracking-widest">
-              {reserved?.code}
-            </p>
+          <div className="bg-gray-50 rounded-2xl px-6 py-4 mb-5 flex items-center gap-4">
+            <div className="flex-1">
+              <p className="text-xs text-gray-400 uppercase tracking-wider mb-1">Confirmation Code</p>
+              <p className="text-2xl font-mono font-bold text-gray-900 tracking-widest">
+                {reserved?.code}
+              </p>
+            </div>
+            {reserved?.code && (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={`https://api.qrserver.com/v1/create-qr-code/?size=80x80&data=${encodeURIComponent(reserved.code)}&margin=4`}
+                alt="QR code"
+                width={80}
+                height={80}
+                className="rounded-lg border border-gray-200 shrink-0"
+              />
+            )}
           </div>
 
           <div className="grid grid-cols-2 gap-3 text-left bg-brand-50 rounded-2xl p-4 mb-5">
