@@ -1,9 +1,11 @@
 'use client';
 
-import React, { createContext, useContext, useReducer } from 'react';
+import React, { createContext, useContext, useEffect, useReducer, useState } from 'react';
 import { Listing, Reservation, ListingFilters, ReservationStatus } from '@/types';
 import { MOCK_LISTINGS, MOCK_RESERVATIONS } from '@/lib/mock-data';
-import { generateId, generateCode } from '@/lib/utils';
+import { generateCode } from '@/lib/utils';
+import { supabase, isSupabaseEnabled, dbListingToListing, listingToDb, dbReservationToReservation } from '@/lib/supabase';
+import { useAuth } from '@/context/AuthContext';
 
 // ─── Reducer ──────────────────────────────────────────────────────────────
 
@@ -79,17 +81,74 @@ const DataContext = createContext<DataContextValue | null>(null);
 // ─── Provider ─────────────────────────────────────────────────────────────
 
 export function DataProvider({ children }: { children: React.ReactNode }) {
+  const { user, accessToken } = useAuth();
+
   const [state, dispatch] = useReducer(dataReducer, {
-    listings: MOCK_LISTINGS,
-    reservations: MOCK_RESERVATIONS,
+    listings: isSupabaseEnabled ? [] : MOCK_LISTINGS,
+    reservations: isSupabaseEnabled ? [] : MOCK_RESERVATIONS,
   });
 
-  // Always mock mode — no Supabase
-  const listingsFetchStatus: ListingsFetchStatus = 'mock';
+  const [listingsFetchStatus, setListingsFetchStatus] = useState<ListingsFetchStatus>(
+    isSupabaseEnabled ? 'loading' : 'mock'
+  );
 
-  const refreshListings = async () => { /* no-op in mock mode */ };
+  // ── Supabase data loading ──────────────────────────────────────
 
-  // ── Queries ───────────────────────────────────────────────────────────
+  const refreshListings = async () => {
+    if (!isSupabaseEnabled || !supabase) return;
+    setListingsFetchStatus('loading');
+    const { data, error } = await supabase
+      .from('listings')
+      .select('*')
+      .eq('status', 'available')
+      .eq('is_sample', false)
+      .order('created_at', { ascending: false });
+    if (error) { setListingsFetchStatus('error'); return; }
+    dispatch({ type: 'SET_LISTINGS', listings: data.map(dbListingToListing) });
+    setListingsFetchStatus('live');
+  };
+
+  // Load public listings on mount
+  useEffect(() => {
+    if (isSupabaseEnabled) refreshListings();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Load provider's own listings (all statuses) when in provider mode
+  useEffect(() => {
+    if (!isSupabaseEnabled || !supabase || !user || user.currentMode !== 'provider') return;
+    supabase
+      .from('listings')
+      .select('*')
+      .eq('provider_id', user.id)
+      .order('created_at', { ascending: false })
+      .then(({ data }) => {
+        if (!data) return;
+        const providerListings = data.map(dbListingToListing);
+        const ids = new Set(providerListings.map((l) => l.id));
+        dispatch({
+          type: 'SET_LISTINGS',
+          listings: [...providerListings, ...state.listings.filter((l) => !ids.has(l.id))],
+        });
+      });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.currentMode, user?.id]);
+
+  // Load user's reservations when logged in
+  useEffect(() => {
+    if (!isSupabaseEnabled || !supabase || !user?.id) return;
+    supabase
+      .from('reservations')
+      .select('*')
+      .eq('consumer_id', user.id)
+      .order('created_at', { ascending: false })
+      .then(({ data }) => {
+        if (data) dispatch({ type: 'SET_RESERVATIONS', reservations: data.map(dbReservationToReservation) });
+      });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.id]);
+
+  // ── Queries ───────────────────────────────────────────────────
 
   const getListings = (filters?: ListingFilters): Listing[] => {
     let results = state.listings.filter((l) => l.status === 'available');
@@ -124,14 +183,36 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   const getConsumerReservations = (consumerId: string) =>
     state.reservations.filter((r) => r.consumerId === consumerId);
 
-  // ── Mutations ──────────────────────────────────────────────────────────
+  // ── Mutations ──────────────────────────────────────────────────
 
   const createListing = async (
     data: Omit<Listing, 'id' | 'createdAt' | 'quantityReserved' | 'status'>
   ): Promise<Listing> => {
+    if (isSupabaseEnabled && supabase) {
+      if (!accessToken) throw new Error('Not authenticated. Please sign in again.');
+
+      const dbRow = listingToDb(data);
+      const res = await fetch('/api/listings/create', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${accessToken}`,
+        },
+        body: JSON.stringify(dbRow),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({ error: 'Unknown error' }));
+        throw new Error(err.error ?? 'Failed to create listing');
+      }
+      const inserted = await res.json();
+      const listing = dbListingToListing(inserted);
+      dispatch({ type: 'ADD_LISTING', listing });
+      return listing;
+    }
+
     const listing: Listing = {
       ...data,
-      id: generateId(),
+      id: crypto.randomUUID(),
       createdAt: new Date().toISOString(),
       quantityReserved: 0,
       status: 'available',
@@ -140,11 +221,34 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     return listing;
   };
 
-  const updateListing = (id: string, data: Partial<Listing>) => {
+  const updateListing = async (id: string, data: Partial<Listing>) => {
+    if (isSupabaseEnabled && supabase) {
+      // Convert camelCase partial to snake_case for DB
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const dbData: Record<string, any> = {};
+      if ('title' in data) dbData.title = data.title;
+      if ('description' in data) dbData.description = data.description;
+      if ('price' in data) dbData.price = data.price;
+      if ('originalPrice' in data) dbData.original_price = data.originalPrice;
+      if ('quantity' in data) dbData.quantity = data.quantity;
+      if ('quantityReserved' in data) dbData.quantity_reserved = data.quantityReserved;
+      if ('status' in data) dbData.status = data.status;
+      if ('allergens' in data) dbData.allergens = data.allergens;
+      if ('tags' in data) dbData.tags = data.tags;
+      if ('expiresAt' in data) dbData.expires_at = data.expiresAt;
+      if ('pickupInstructions' in data) dbData.pickup_instructions = data.pickupInstructions;
+      if ('imageUrl' in data) dbData.image_url = data.imageUrl;
+      if (Object.keys(dbData).length > 0) {
+        await supabase.from('listings').update(dbData).eq('id', id);
+      }
+    }
     dispatch({ type: 'UPDATE_LISTING', id, data });
   };
 
-  const deleteListing = (id: string) => {
+  const deleteListing = async (id: string) => {
+    if (isSupabaseEnabled && supabase) {
+      await supabase.from('listings').delete().eq('id', id);
+    }
     dispatch({ type: 'DELETE_LISTING', id });
   };
 
@@ -154,8 +258,51 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     consumerName: string,
     qty: number
   ): Promise<Reservation> => {
+    const newReserved = listing.quantityReserved + qty;
+    const newStatus = newReserved >= listing.quantity ? 'sold_out' : 'available';
+    const confirmationCode = `NN-${generateCode()}`;
+
+    if (isSupabaseEnabled && supabase) {
+      const { data: resRow, error: resErr } = await supabase
+        .from('reservations')
+        .insert({
+          listing_id: listing.id,
+          listing_snapshot: listing,
+          consumer_id: consumerId,
+          consumer_name: consumerName,
+          quantity: qty,
+          total_price: listing.price * qty,
+          status: 'confirmed',
+          confirmation_code: confirmationCode,
+        })
+        .select()
+        .single();
+      if (resErr) throw new Error(resErr.message);
+
+      await supabase
+        .from('listings')
+        .update({ quantity_reserved: newReserved, status: newStatus })
+        .eq('id', listing.id);
+
+      const reservation: Reservation = {
+        id: resRow.id,
+        listingId: listing.id,
+        listing,
+        consumerId,
+        consumerName,
+        quantity: qty,
+        totalPrice: listing.price * qty,
+        status: 'confirmed',
+        confirmationCode,
+        createdAt: resRow.created_at,
+      };
+      dispatch({ type: 'ADD_RESERVATION', reservation });
+      dispatch({ type: 'UPDATE_LISTING', id: listing.id, data: { quantityReserved: newReserved, status: newStatus } });
+      return reservation;
+    }
+
     const reservation: Reservation = {
-      id: generateId(),
+      id: crypto.randomUUID(),
       listingId: listing.id,
       listing,
       consumerId,
@@ -163,35 +310,42 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       quantity: qty,
       totalPrice: listing.price * qty,
       status: 'confirmed',
-      confirmationCode: `NN-${generateCode()}`,
+      confirmationCode,
       createdAt: new Date().toISOString(),
     };
-
-    const newReserved = listing.quantityReserved + qty;
-    const newStatus = newReserved >= listing.quantity ? 'sold_out' : 'available';
     dispatch({ type: 'ADD_RESERVATION', reservation });
     dispatch({ type: 'UPDATE_LISTING', id: listing.id, data: { quantityReserved: newReserved, status: newStatus } });
-
     return reservation;
   };
 
-  const cancelReservation = (id: string) => {
+  const cancelReservation = async (id: string) => {
     const res = state.reservations.find((r) => r.id === id);
     if (!res) return;
-    dispatch({ type: 'UPDATE_RESERVATION', id, status: 'cancelled' });
     const restored = Math.max(0, res.listing.quantityReserved - res.quantity);
+    if (isSupabaseEnabled && supabase) {
+      await supabase.from('reservations').update({ status: 'cancelled' }).eq('id', id);
+      await supabase.from('listings').update({ quantity_reserved: restored, status: 'available' }).eq('id', res.listingId);
+    }
+    dispatch({ type: 'UPDATE_RESERVATION', id, status: 'cancelled' });
     dispatch({ type: 'UPDATE_LISTING', id: res.listingId, data: { quantityReserved: restored, status: 'available' } });
   };
 
-  const confirmPickup = (id: string) => {
+  const confirmPickup = async (id: string) => {
+    if (isSupabaseEnabled && supabase) {
+      await supabase.from('reservations').update({ status: 'picked_up' }).eq('id', id);
+    }
     dispatch({ type: 'UPDATE_RESERVATION', id, status: 'picked_up' });
   };
 
-  const cancelAtPickup = (id: string) => {
+  const cancelAtPickup = async (id: string) => {
     const res = state.reservations.find((r) => r.id === id);
     if (!res) return;
-    dispatch({ type: 'UPDATE_RESERVATION', id, status: 'cancelled_at_pickup' });
     const restored = Math.max(0, res.listing.quantityReserved - res.quantity);
+    if (isSupabaseEnabled && supabase) {
+      await supabase.from('reservations').update({ status: 'cancelled_at_pickup' }).eq('id', id);
+      await supabase.from('listings').update({ quantity_reserved: restored, status: 'available' }).eq('id', res.listingId);
+    }
+    dispatch({ type: 'UPDATE_RESERVATION', id, status: 'cancelled_at_pickup' });
     dispatch({ type: 'UPDATE_LISTING', id: res.listingId, data: { quantityReserved: restored, status: 'available' } });
   };
 
