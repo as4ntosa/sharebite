@@ -31,8 +31,8 @@ export default function ProviderProfilePage() {
     setEditOpen(false);
   };
 
-  const handleLogout = () => {
-    logout();
+  const handleLogout = async () => {
+    await logout();
     router.replace('/');
   };
 

@@ -60,6 +60,8 @@ export default function ProviderApplyPage() {
     applyForProvider({
       providerType,
       businessName: businessName || undefined,
+      address: address || undefined,
+      licenseNumber: licenseNumber || undefined,
       safetyPolicyAccepted: integrityChecked,
       integrityPolicyAccepted: integrityChecked,
       foodSafetyAccepted: foodSafetyChecked && pickupChecked,
