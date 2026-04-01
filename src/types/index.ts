@@ -76,6 +76,9 @@ export interface User {
   foodSafetyAccepted?: boolean;
   waiverSigned?: boolean;
   waiverSignedAt?: string;
+  isAdmin?: boolean;
+  address?: string;
+  licenseNumber?: string;
 }
 
 export type ProviderBadge = 'verified' | 'top-rated' | 'fast-mover' | 'eco-champion' | 'health-certified';
