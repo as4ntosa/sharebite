@@ -45,10 +45,12 @@ function LoginContent() {
     try {
       if (tab === 'login') {
         await login(email, password);
+        // Keep submitting=true — button stays loading until useEffect redirect fires
+        return;
       } else {
         if (!name.trim()) throw new Error('Please enter your name');
         await signup(email, password, name);
-        // signup sets user via persistLocal; useEffect above handles redirect
+        return;
       }
     } catch (err: any) {
       const msg: string = err.message ?? 'Something went wrong';
@@ -58,9 +60,8 @@ function LoginContent() {
       } else {
         setError(msg);
       }
-    } finally {
-      setSubmitting(false);
     }
+    setSubmitting(false);
   };
 
   return (
