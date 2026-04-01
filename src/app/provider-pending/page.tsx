@@ -3,30 +3,70 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { Clock, CheckCircle, Leaf, ShieldCheck } from 'lucide-react';
-import { Button } from '@/components/ui/Button';
+import { Clock, CheckCircle, ShieldCheck, XCircle } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
+import { supabase, isSupabaseEnabled } from '@/lib/supabase';
 
 export default function ProviderPendingPage() {
   const router = useRouter();
-  const { user, approveProvider } = useAuth();
-  const [approving, setApproving] = useState(false);
+  const { user, updateProfile } = useAuth();
+  const [rejected, setRejected] = useState(false);
 
   useEffect(() => {
-    // If already approved and in provider mode, go to dashboard.
-    // If approved but still in consumer mode, stay here until they choose to switch.
     if (user?.providerStatus === 'approved' && user?.currentMode === 'provider') {
       router.replace('/dashboard');
     }
+    if (user?.providerStatus === 'approved') {
+      router.replace('/home');
+    }
+    if (user?.providerStatus === 'rejected') {
+      setRejected(true);
+    }
   }, [user, router]);
 
-  const handleDemoApprove = async () => {
-    setApproving(true);
-    await new Promise((r) => setTimeout(r, 1200));
-    approveProvider(); // sets providerStatus='approved', currentMode stays 'consumer'
-    // Land on home — the mode switcher will appear and the user can choose to switch
-    router.replace('/home');
-  };
+  // Real-time subscription: detect when an admin approves or rejects
+  useEffect(() => {
+    if (!isSupabaseEnabled || !supabase || !user?.id) return;
+
+    const channel = supabase
+      .channel('profile-status')
+      .on(
+        'postgres_changes',
+        { event: 'UPDATE', schema: 'public', table: 'profiles', filter: `id=eq.${user.id}` },
+        (payload) => {
+          const status = payload.new.provider_status;
+          if (status === 'approved') {
+            updateProfile({ providerStatus: 'approved', canProvide: true });
+            router.replace('/home');
+          } else if (status === 'rejected') {
+            updateProfile({ providerStatus: 'rejected' });
+            setRejected(true);
+          }
+        }
+      )
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
+  }, [user?.id]);
+
+  if (rejected) {
+    return (
+      <div className="min-h-screen bg-white flex flex-col">
+        <div className="flex-1 flex flex-col items-center justify-center px-6 text-center">
+          <div className="w-20 h-20 rounded-full bg-red-100 flex items-center justify-center mb-6">
+            <XCircle size={36} className="text-red-500" />
+          </div>
+          <h1 className="text-2xl font-bold text-gray-900 mb-2">Application Not Approved</h1>
+          <p className="text-sm text-gray-500 max-w-xs leading-relaxed mb-8">
+            Unfortunately your provider application was not approved at this time. You can reapply or contact support for more information.
+          </p>
+          <Link href="/home" className="text-sm text-brand-600 font-medium">
+            Return to browsing
+          </Link>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-white flex flex-col">
@@ -40,7 +80,7 @@ export default function ProviderPendingPage() {
           Thank you for applying to become a NibbleNet provider. Our team will review your application and respond within 1–3 business days.
         </p>
 
-        {/* Status card */}
+        {/* Status steps */}
         <div className="w-full max-w-xs bg-gray-50 rounded-2xl p-5 mb-8 text-left space-y-4">
           {[
             { icon: CheckCircle, color: 'text-brand-600 bg-brand-100', label: 'Application received', done: true },
@@ -56,19 +96,11 @@ export default function ProviderPendingPage() {
           ))}
         </div>
 
-        {/* Demo approval button */}
-        <div className="w-full max-w-xs bg-amber-50 border border-amber-200 rounded-2xl p-4 mb-6">
-          <div className="flex items-center gap-2 mb-2">
-            <Leaf size={14} className="text-amber-600" />
-            <p className="text-xs font-bold text-amber-700">Prototype / Demo Mode</p>
-          </div>
-          <p className="text-xs text-amber-600 mb-3 leading-relaxed">
-            In a real deployment, approval happens via our admin team. For this prototype, click below to instantly simulate approval. After approval, a mode switcher will appear so you can toggle between Consumer and Provider tools.
+        {isSupabaseEnabled && (
+          <p className="text-xs text-gray-400 mb-6 max-w-xs leading-relaxed">
+            This page will update automatically when your application is reviewed.
           </p>
-          <Button fullWidth size="sm" loading={approving} onClick={handleDemoApprove}>
-            Simulate Approval
-          </Button>
-        </div>
+        )}
 
         <Link href="/home" className="text-sm text-gray-400 hover:text-gray-600">
           Return to browsing
