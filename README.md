@@ -38,6 +38,7 @@ Every NibbleNet transaction simultaneously reduces food waste, makes food more a
 | Unified account (consumer + provider) | ✓ | Usually separate |
 | Household provider support | ✓ | Rarely |
 | 4-step provider safety approval | ✓ | Usually none |
+| Real admin review + AI verification | ✓ | Usually none |
 | Allergen-aware auto-filtering | ✓ Built into account | Filter afterthought |
 | Live distance-sorted feed | ✓ Haversine + geolocation | Rarely |
 | Food condition + freshness data | ✓ | Rarely |
@@ -131,12 +132,15 @@ Provider access is a gated capability — not a separate account type.
 2. **Provider type selection** — restaurant, grocery, or household
 3. **Integrity and safety agreement** — acknowledgment of prohibited items
 4. **Food safety fine print** — food handling standards, allergen disclosure, consumer inspection right
+5. **Admin review** — application reviewed by a NibbleNet admin via the `/admin` panel; admin can optionally run AI verification before approving or rejecting
 
 ---
 
 ## Trust & Safety
 
 - **Provider gating** — listing creation locked until 4-step approval completes
+- **Admin review** — every provider application is reviewed by a human admin before approval
+- **AI verification** — admins can run an AI analysis (Featherless AI) on each application to surface risk level, positives, and concerns before deciding
 - **Integrity agreement** — every provider explicitly acknowledges prohibited items
 - **Food safety acknowledgment** — covers all food types and handling standards
 - **Pickup inspection right** — consumers can inspect and cancel at pickup
@@ -222,6 +226,7 @@ The demo account has `providerStatus: 'approved'` pre-configured. You can browse
 | Geolocation | Browser API + Haversine distance formula |
 | AI Chatbot | Featherless AI — Llama 3.1-8B-Instruct *(Siyu Fan)* |
 | AI Insights | Featherless AI — provider analytics recommendations *(Siyu Fan)* |
+| AI Verification | Featherless AI — provider application risk analysis *(Alexis)* |
 | Images | Unsplash CDN |
 
 ---
@@ -259,6 +264,7 @@ To set up a new project, run [`supabase-schema.sql`](./supabase-schema.sql) in t
 |---|---|---|
 | `NEXT_PUBLIC_SUPABASE_URL` | Optional | Enables live auth + database |
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Optional | Supabase public API key |
+| `SUPABASE_SERVICE_ROLE_KEY` | Optional | Required for server-side API routes (listings, profile, admin actions) |
 | `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY` | Optional | Enables map views (falls back gracefully) |
 
 Open [http://localhost:3000](http://localhost:3000)
@@ -277,10 +283,15 @@ src/
 ├── app/
 │   ├── (consumer)/        # Home feed, search, listing detail, reservations, profile
 │   ├── (provider)/        # Dashboard, listings CRUD, create listing, reports
-│   ├── api/report/        # AI insights API route (Featherless) — Siyu Fan
+│   ├── admin/             # Admin panel — pending applications, AI verify, approve/reject
+│   ├── api/
+│   │   ├── admin/         # approve, reject, ai-verify — service role, JWT auth
+│   │   ├── listings/      # create — service role, bypasses Supabase JS client
+│   │   ├── profile/       # update — service role, bypasses Supabase JS client
+│   │   └── report/        # AI insights (Featherless) — Siyu Fan
 │   ├── become-a-provider/ # Provider landing page
 │   ├── provider-apply/    # 4-step provider onboarding form
-│   ├── provider-pending/  # Pending approval status + demo approval
+│   ├── provider-pending/  # Pending approval status with Realtime sync
 │   ├── login/             # Unified sign-in / sign-up (Supabase + mock)
 │   └── onboarding/        # City + zip setup after sign-up
 ├── components/
@@ -314,6 +325,11 @@ src/
 - Real Supabase database — live sign-up, login, and listing storage *(Alexis)*
 - Unified account with consumer/provider mode switching *(Alexis)*
 - 4-step provider safety approval flow *(Alexis)*
+- Real admin approval panel (`/admin`) — human review before providers go live *(Alexis)*
+- AI verification for provider applications — risk level, positives, concerns *(Alexis)*
+- Admin Panel link in profile (visible only to admins) *(Alexis)*
+- Server-side API routes (service role key) — fix Supabase JS client mutation hang *(Alexis)*
+- Realtime profile sync — provider approval reflected instantly without re-login *(Alexis)*
 - Consumer feed with allergen-aware auto-filtering *(Alexis)*
 - Location-based listing discovery (Haversine + geolocation) *(Alexis)*
 - Food condition + freshness data on every listing *(Alexis)*
