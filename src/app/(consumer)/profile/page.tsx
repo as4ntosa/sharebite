@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { LogOut, ChevronRight, MapPin, Mail, Phone, Edit3, Store, HelpCircle, Bell, AlertCircle, Clock, ArrowLeftRight, ShoppingBag } from 'lucide-react';
+import { LogOut, ChevronRight, MapPin, Mail, Phone, Edit3, Store, HelpCircle, Bell, AlertCircle, Clock, ArrowLeftRight, ShoppingBag, ShieldCheck } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Button } from '@/components/ui/Button';
@@ -230,6 +230,19 @@ export default function ProfilePage() {
               )}
             </button>
           </div>
+        )}
+
+        {/* Admin Panel — only visible to admins */}
+        {user.isAdmin && (
+          <Link href="/admin">
+            <div className="bg-white rounded-2xl shadow-card flex items-center gap-3 px-4 py-3.5 hover:bg-purple-50 transition-colors">
+              <div className="w-8 h-8 rounded-xl bg-purple-100 flex items-center justify-center shrink-0">
+                <ShieldCheck size={14} className="text-purple-600" />
+              </div>
+              <span className="flex-1 text-sm font-medium text-gray-700">Admin Panel</span>
+              <ChevronRight size={16} className="text-gray-300" />
+            </div>
+          </Link>
         )}
 
         <button

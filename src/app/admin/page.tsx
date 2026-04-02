@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { CheckCircle, XCircle, Clock, Users, RefreshCw, ChevronRight, ShieldCheck, FileText, MapPin, Phone, Mail, X } from 'lucide-react';
+import { CheckCircle, XCircle, Clock, Users, RefreshCw, ChevronRight, FileText, MapPin, Phone, Mail, X, Sparkles, AlertTriangle, ShieldCheck, ShieldAlert, ShieldQuestion } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { useAuth } from '@/context/AuthContext';
 import { supabase } from '@/lib/supabase';
@@ -24,20 +24,43 @@ interface Applicant {
   created_at: string;
 }
 
-function DetailModal({ applicant, onClose, onApprove, onReject, acting, done }: {
+interface AiResult {
+  recommendation: 'approve' | 'reject' | 'review';
+  riskLevel: 'low' | 'medium' | 'high';
+  summary: string;
+  positives: string[];
+  concerns: string[];
+}
+
+function DetailModal({ applicant, onClose, onApprove, onReject, onAiVerify, acting, verifying, aiResult, done }: {
   applicant: Applicant;
   onClose: () => void;
   onApprove: (id: string) => void;
   onReject: (id: string) => void;
+  onAiVerify: (applicant: Applicant) => void;
   acting: boolean;
+  verifying: boolean;
+  aiResult: AiResult | null;
   done?: 'approved' | 'rejected';
 }) {
   const result = done;
 
+  const riskColor = {
+    low: 'text-brand-600 bg-brand-50',
+    medium: 'text-amber-600 bg-amber-50',
+    high: 'text-red-600 bg-red-50',
+  };
+
+  const recommendationIcon = {
+    approve: <ShieldCheck size={15} className="text-brand-600" />,
+    reject: <ShieldAlert size={15} className="text-red-500" />,
+    review: <ShieldQuestion size={15} className="text-amber-500" />,
+  };
+
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40" onClick={onClose}>
       <div
-        className="bg-white w-full max-w-sm rounded-t-3xl p-5 pb-8 max-h-[90vh] overflow-y-auto"
+        className="bg-white w-full max-w-sm rounded-t-3xl p-5 pb-8 max-h-[92vh] overflow-y-auto"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Handle */}
@@ -140,6 +163,51 @@ function DetailModal({ applicant, onClose, onApprove, onReject, acting, done }: 
           </div>
         </div>
 
+        {/* AI Result card */}
+        {aiResult && (
+          <div className="mb-4 rounded-2xl border border-gray-100 overflow-hidden">
+            <div className="flex items-center gap-2 px-4 py-3 bg-gray-50 border-b border-gray-100">
+              <Sparkles size={14} className="text-purple-500" />
+              <span className="text-xs font-semibold text-gray-700">AI Verification Result</span>
+              <span className={`ml-auto text-[10px] font-bold px-2 py-0.5 rounded-full ${riskColor[aiResult.riskLevel]}`}>
+                {aiResult.riskLevel.toUpperCase()} RISK
+              </span>
+            </div>
+            <div className="px-4 py-3 space-y-3">
+              <div className="flex items-start gap-2">
+                {recommendationIcon[aiResult.recommendation]}
+                <p className="text-xs text-gray-700 leading-relaxed">{aiResult.summary}</p>
+              </div>
+              {aiResult.positives.length > 0 && (
+                <div>
+                  <p className="text-[10px] font-semibold text-brand-600 uppercase tracking-wide mb-1">Positives</p>
+                  <ul className="space-y-1">
+                    {aiResult.positives.map((p, i) => (
+                      <li key={i} className="flex items-start gap-1.5 text-xs text-gray-600">
+                        <CheckCircle size={11} className="text-brand-500 shrink-0 mt-0.5" />
+                        {p}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+              {aiResult.concerns.length > 0 && (
+                <div>
+                  <p className="text-[10px] font-semibold text-amber-600 uppercase tracking-wide mb-1">Concerns</p>
+                  <ul className="space-y-1">
+                    {aiResult.concerns.map((c, i) => (
+                      <li key={i} className="flex items-start gap-1.5 text-xs text-gray-600">
+                        <AlertTriangle size={11} className="text-amber-500 shrink-0 mt-0.5" />
+                        {c}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
         {/* Actions */}
         {result ? (
           <div className={`flex items-center justify-center gap-2 py-3 rounded-2xl font-semibold text-sm ${
@@ -148,13 +216,28 @@ function DetailModal({ applicant, onClose, onApprove, onReject, acting, done }: 
             {result === 'approved' ? <><CheckCircle size={16} /> Approved</> : <><XCircle size={16} /> Rejected</>}
           </div>
         ) : (
-          <div className="flex gap-2">
-            <Button fullWidth size="lg" loading={acting} onClick={() => onApprove(applicant.id)}>
-              Approve
-            </Button>
-            <Button fullWidth size="lg" variant="outline" loading={acting} onClick={() => onReject(applicant.id)}>
-              Reject
-            </Button>
+          <div className="space-y-2">
+            {!aiResult && (
+              <button
+                onClick={() => onAiVerify(applicant)}
+                disabled={verifying}
+                className="w-full flex items-center justify-center gap-2 py-3 rounded-2xl border border-purple-200 bg-purple-50 text-purple-700 text-sm font-semibold hover:bg-purple-100 transition-colors disabled:opacity-60"
+              >
+                {verifying ? (
+                  <><div className="w-4 h-4 border-2 border-purple-400 border-t-transparent rounded-full animate-spin" /> Analyzing…</>
+                ) : (
+                  <><Sparkles size={15} /> AI Verify</>
+                )}
+              </button>
+            )}
+            <div className="flex gap-2">
+              <Button fullWidth size="lg" loading={acting} onClick={() => onApprove(applicant.id)}>
+                Approve
+              </Button>
+              <Button fullWidth size="lg" variant="outline" loading={acting} onClick={() => onReject(applicant.id)}>
+                Reject
+              </Button>
+            </div>
           </div>
         )}
       </div>
@@ -164,11 +247,13 @@ function DetailModal({ applicant, onClose, onApprove, onReject, acting, done }: 
 
 export default function AdminPage() {
   const router = useRouter();
-  const { user, loading } = useAuth();
+  const { user, loading, accessToken } = useAuth();
   const [applicants, setApplicants] = useState<Applicant[]>([]);
   const [fetching, setFetching] = useState(true);
   const [selected, setSelected] = useState<Applicant | null>(null);
   const [acting, setActing] = useState(false);
+  const [verifying, setVerifying] = useState(false);
+  const [aiResult, setAiResult] = useState<AiResult | null>(null);
   const [done, setDone] = useState<Record<string, 'approved' | 'rejected'>>({});
 
   useEffect(() => {
@@ -189,18 +274,28 @@ export default function AdminPage() {
     setFetching(false);
   };
 
-  const getToken = async (): Promise<string | null> => {
-    if (!supabase) return null;
-    const { data } = await supabase.auth.getSession();
-    return data.session?.access_token ?? null;
+  const handleAiVerify = async (applicant: Applicant) => {
+    setVerifying(true);
+    try {
+      const res = await fetch('/api/admin/ai-verify', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${accessToken}` },
+        body: JSON.stringify(applicant),
+      });
+      if (res.ok) {
+        const result: AiResult = await res.json();
+        setAiResult(result);
+      }
+    } finally {
+      setVerifying(false);
+    }
   };
 
   const handleApprove = async (userId: string) => {
     setActing(true);
-    const token = await getToken();
     const res = await fetch('/api/admin/approve', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${accessToken}` },
       body: JSON.stringify({ userId }),
     });
     if (res.ok) setDone((d) => ({ ...d, [userId]: 'approved' }));
@@ -209,10 +304,9 @@ export default function AdminPage() {
 
   const handleReject = async (userId: string) => {
     setActing(true);
-    const token = await getToken();
     const res = await fetch('/api/admin/reject', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${accessToken}` },
       body: JSON.stringify({ userId }),
     });
     if (res.ok) setDone((d) => ({ ...d, [userId]: 'rejected' }));
@@ -261,7 +355,7 @@ export default function AdminPage() {
               <button
                 key={a.id}
                 className="w-full bg-white rounded-2xl p-4 shadow-sm text-left flex items-center gap-3"
-                onClick={() => setSelected(a)}
+                onClick={() => { setSelected(a); setAiResult(null); }}
               >
                 <div className="w-10 h-10 rounded-full bg-brand-100 flex items-center justify-center shrink-0 text-lg">
                   {a.provider_type === 'Restaurant' ? '🍽️' : a.provider_type === 'Grocery Store' ? '🛒' : '🏠'}
@@ -291,10 +385,13 @@ export default function AdminPage() {
       {selected && (
         <DetailModal
           applicant={selected}
-          onClose={() => setSelected(null)}
+          onClose={() => { setSelected(null); setAiResult(null); }}
           onApprove={handleApprove}
           onReject={handleReject}
+          onAiVerify={handleAiVerify}
           acting={acting}
+          verifying={verifying}
+          aiResult={aiResult}
           done={done[selected.id]}
         />
       )}
