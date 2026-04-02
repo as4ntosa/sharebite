@@ -2,10 +2,10 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getProviderOrders } from '@/lib/mock-orders';
 import { calculateAnalytics, buildReportPrompt } from '@/lib/analytics';
 
-// Featherless AI config
-const FEATHERLESS_API_KEY = 'rc_82ef6597804cb6b2ab383a3b60d9d088c29c0a45e06d567d512066fbc7e70dcc';
-const FEATHERLESS_API_URL = 'https://api.featherless.ai/v1/chat/completions';
-const FEATHERLESS_MODEL = 'meta-llama/Meta-Llama-3.1-8B-Instruct';
+// Kimi AI config
+const KIMI_API_KEY = 'sk-zgfw04mTqnw3pMS2qcqiuk8CQzyZB0KucyxgK1fsDkiMTW9B';
+const KIMI_API_URL = 'https://api.moonshot.cn/v1/chat/completions';
+const KIMI_MODEL = 'moonshot-v1-8k';
 
 // Fallback insights when API is unavailable
 function generateFallbackInsights(providerName: string, analytics: ReturnType<typeof calculateAnalytics>) {
@@ -40,14 +40,14 @@ export async function GET(request: NextRequest) {
   try {
     const prompt = buildReportPrompt(providerName, analytics);
 
-    const res = await fetch(FEATHERLESS_API_URL, {
+    const res = await fetch(KIMI_API_URL, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        Authorization: `Bearer ${FEATHERLESS_API_KEY}`,
+        Authorization: `Bearer ${KIMI_API_KEY}`,
       },
       body: JSON.stringify({
-        model: FEATHERLESS_MODEL,
+        model: KIMI_MODEL,
         messages: [{ role: 'user', content: prompt }],
         max_tokens: 512,
         temperature: 0.7,
