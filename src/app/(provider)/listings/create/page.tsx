@@ -1,9 +1,9 @@
 'use client';
 
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
-import { ArrowLeft, ImagePlus, CheckCircle, Gift, Sparkles, Loader2, Heart, Calendar } from 'lucide-react';
+import { ArrowLeft, ImagePlus, CheckCircle, Gift, Sparkles, Loader2, Heart, Calendar, Upload, X } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { Input, Textarea } from '@/components/ui/Input';
 import { Modal } from '@/components/ui/Modal';
@@ -12,6 +12,7 @@ import { useData } from '@/context/DataContext';
 import { Category, CuisineTag, SurpriseBoxSize, Allergen } from '@/types';
 import { CATEGORIES, CUISINE_TAGS, CATEGORY_EMOJI, cn, SURPRISE_BOX_SIZES, SURPRISE_BOX_LABELS, SURPRISE_BOX_PRICES, SURPRISE_BOX_DESCRIPTIONS, ALLERGENS, ALLERGEN_LABEL } from '@/lib/utils';
 import { askAI } from '@/lib/ai';
+import { supabase, isSupabaseEnabled } from '@/lib/supabase';
 
 // Sample images providers can choose from
 const SAMPLE_IMAGES = [
@@ -62,12 +63,35 @@ export default function CreateListingPage() {
   });
 
   const [imagePickerOpen, setImagePickerOpen] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [uploadError, setUploadError] = useState('');
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [successOpen, setSuccessOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [waiverOpen, setWaiverOpen] = useState(!user?.waiverSigned);
   const [waiverChecked, setWaiverChecked] = useState(false);
   const [waiverSigning, setWaiverSigning] = useState(false);
+
+  // Image upload
+  const handleFileUpload = async (file: File) => {
+    if (!supabase || !user) return;
+    if (file.size > 5 * 1024 * 1024) { setUploadError('Image must be under 5 MB'); return; }
+    setUploading(true);
+    setUploadError('');
+    try {
+      const ext = file.name.split('.').pop();
+      const path = `${user.id}/${Date.now()}.${ext}`;
+      const { error } = await supabase.storage.from('listing-images').upload(path, file, { upsert: true });
+      if (error) throw error;
+      const { data: { publicUrl } } = supabase.storage.from('listing-images').getPublicUrl(path);
+      set('imageUrl', publicUrl);
+    } catch (err) {
+      setUploadError(err instanceof Error ? err.message : 'Upload failed');
+    } finally {
+      setUploading(false);
+    }
+  };
 
   // AI features
   const [priceSuggestion, setPriceSuggestion] = useState<string | null>(null);
@@ -227,30 +251,68 @@ export default function CreateListingPage() {
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-5">
-        {/* Photo picker */}
+        {/* Photo */}
         <div>
           <p className="text-sm font-medium text-gray-700 mb-2">Photo</p>
-          <button
-            type="button"
-            onClick={() => setImagePickerOpen(true)}
-            className="relative w-full aspect-[16/9] rounded-2xl overflow-hidden bg-gray-100 flex items-center justify-center border-2 border-dashed border-gray-200 hover:border-brand-400 transition-colors"
-          >
+
+          {/* Upload preview / drop zone */}
+          <div className="relative w-full aspect-[16/9] rounded-2xl overflow-hidden bg-gray-100 border-2 border-dashed border-gray-200">
             {form.imageUrl ? (
               <>
                 <Image src={form.imageUrl} alt="Listing photo" fill className="object-cover" sizes="100vw" />
-                <div className="absolute inset-0 bg-black/30 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity">
-                  <div className="bg-white/90 rounded-xl px-3 py-2 flex items-center gap-2 text-sm font-medium text-gray-700">
-                    <ImagePlus size={15} /> Change Photo
-                  </div>
-                </div>
+                <button
+                  type="button"
+                  onClick={() => set('imageUrl', '')}
+                  className="absolute top-2 right-2 w-7 h-7 rounded-full bg-black/50 flex items-center justify-center text-white hover:bg-black/70"
+                >
+                  <X size={13} />
+                </button>
               </>
-            ) : (
-              <div className="flex flex-col items-center gap-2 text-gray-400">
-                <ImagePlus size={28} />
-                <span className="text-sm">Choose a photo</span>
+            ) : uploading ? (
+              <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 text-gray-400">
+                <Loader2 size={28} className="animate-spin" />
+                <span className="text-sm">Uploading…</span>
               </div>
+            ) : (
+              <button
+                type="button"
+                onClick={() => isSupabaseEnabled ? fileInputRef.current?.click() : setImagePickerOpen(true)}
+                className="absolute inset-0 flex flex-col items-center justify-center gap-2 text-gray-400 hover:text-brand-500 transition-colors"
+              >
+                {isSupabaseEnabled ? <Upload size={28} /> : <ImagePlus size={28} />}
+                <span className="text-sm">{isSupabaseEnabled ? 'Upload a photo' : 'Choose a photo'}</span>
+                {isSupabaseEnabled && <span className="text-xs text-gray-300">JPG, PNG, WEBP · max 5 MB</span>}
+              </button>
             )}
-          </button>
+          </div>
+
+          {/* Hidden file input (Supabase mode only) */}
+          {isSupabaseEnabled && (
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/jpeg,image/png,image/webp,image/heic"
+              className="hidden"
+              onChange={(e) => { const f = e.target.files?.[0]; if (f) handleFileUpload(f); e.target.value = ''; }}
+            />
+          )}
+
+          {/* Change photo / sample picker buttons below preview */}
+          {form.imageUrl && !uploading && (
+            <div className="flex gap-2 mt-2">
+              {isSupabaseEnabled ? (
+                <button type="button" onClick={() => fileInputRef.current?.click()} className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl border border-gray-200 text-xs font-medium text-gray-600 hover:bg-gray-50">
+                  <Upload size={12} /> Replace photo
+                </button>
+              ) : (
+                <button type="button" onClick={() => setImagePickerOpen(true)} className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl border border-gray-200 text-xs font-medium text-gray-600 hover:bg-gray-50">
+                  <ImagePlus size={12} /> Change sample photo
+                </button>
+              )}
+            </div>
+          )}
+
+          {uploadError && <p className="text-xs text-red-500 mt-1">{uploadError}</p>}
         </div>
 
         {/* Surprise box toggle */}
@@ -647,7 +709,7 @@ export default function CreateListingPage() {
           ))}
         </div>
         <p className="text-xs text-gray-400 text-center mt-3">
-          In production, you&apos;ll be able to upload your own photos
+          Sample photos for demo mode
         </p>
       </Modal>
 
